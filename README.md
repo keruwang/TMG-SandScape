@@ -4,7 +4,7 @@ This is the code for MIT TMG SandScape project.
 ## Setup
 Addons include ofxBullet, ofxEigen, ofxGui, ofxKinect, ofxLibigl, ofxOpenCV, ofxShader are used in the code.
 
-**Please use the ofxShader addon in this repo when trying the code. I made some changes to the [original one](https://github.com/patriciogonzalezvivo/ofxShader).** 
+**Please use the ofxShader addon in this repo when trying the code.** 
 
 ## Interactive Instructions
 Press 1-4 to change rendering mode.
