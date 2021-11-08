@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<group>
+	<nearThreshold>195</nearThreshold>
+	<farThreshold>189</farThreshold>
+	<xLeftBoundary>246</xLeftBoundary>
+	<xRightBoundary>444</xRightBoundary>
+	<yTopBoundary>112</yTopBoundary>
+	<yBottomBoundary>321</yBottomBoundary>
+	<blur>10</blur>
+	<scale>0.5</scale>
+	<topViewX>2075</topViewX>
+	<topViewY>225</topViewY>
+	<smoothRound>5</smoothRound>
+	<smoothWeight>6</smoothWeight>
+	<cloud>5</cloud>
+	<water>0.5</water>
+	<overlayBrightness>0</overlayBrightness>
+	<overlaySaturation>0.89</overlaySaturation>
+	<waterVectorBrightness>0</waterVectorBrightness>
+	<contourLineDarkness>0.5</contourLineDarkness>
+	<shadowContrast>1</shadowContrast>
+	<shadowRatio>0.5</shadowRatio>
+	<waterAlpha>0.955</waterAlpha>
+	<meshAlpha>1</meshAlpha>
+	<meshBrightness>1</meshBrightness>
+	<meshSaturation>1</meshSaturation>
+	<gridSize>2</gridSize>
+	<dotSize>2.5</dotSize>
+	<lineWidth>10</lineWidth>
+</group>
