@@ -6,7 +6,7 @@ Addons include *ofxBullet*, *ofxEigen*, *ofxGui*, *ofxKinect*, *ofxLibigl*, *ofx
 
 **Please use the ofxShader addon in this repo when trying the code.** 
 
-## Interactive Instructions
+## Interaction
 Press *1-4* to change rendering mode.
 
 Press *d* to change water drainage render mode.
