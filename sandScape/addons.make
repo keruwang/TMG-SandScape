@@ -1,4 +1,3 @@
-ofxBullet
 ofxEigen
 ofxGui
 ofxKinect

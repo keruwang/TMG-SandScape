@@ -7,7 +7,6 @@
 #include "ofxOpenCv.h"
 #include "ofxKinect.h"
 #include "ofxGui.h"
-#include "ofxBullet.h"
 #include "Particle.h"
 
 #define SIZE 80
@@ -22,7 +21,6 @@ public:
     void update();
     void draw();
     void exit();
-    
     void keyPressed(int key);
     void keyReleased(int key);
     void mouseMoved(int x, int y );
@@ -39,19 +37,15 @@ public:
     void renderVectorField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXd &grad, Eigen::VectorXd &cur, Eigen::MatrixXd &wind, ofVec3f* slop, float drawMode);
     void constructWindField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXd &windU, Eigen::MatrixXd &windV);
     void findPath(int indX, int indY);
-    // for the particles
-    ofxBulletWorldRigid world;
-    shared_ptr<ofxBulletTriMeshShape> bulletMesh;
-    vector<shared_ptr<ofxBulletSphere>> bulletSpheres;
+    
+    // shader programs
     ofxShader shader;
     ofxShader sunShader;
-    ofxShader rainShader;
     ofxShader cloudShader;
     ofVboMesh mainMesh;
-    ofVboMesh cloudMesh;
+
     ofEasyCam mainCam;
-    float perlinRange, perlinHeight;
-    int vectorFieldMode = 0; // grad field or wind field
+    float perlinRange, perlinHeight; // for constructing the default noise mesh
     bool displayParticles = false;
     bool renderField = false;
     bool drawParticle = false;
@@ -59,19 +53,19 @@ public:
     bool realTime = true;
     bool displayTopView = false;
     bool displayRain = false;
-    Eigen::MatrixXd V; //
-    Eigen::MatrixXi F;
-    Eigen::MatrixXd N;
-    float* normals;
+    Eigen::MatrixXd V; // vertex
+    Eigen::MatrixXi F; // faces
+    Eigen::MatrixXd N; // normals
+    float* normals; // unpack the normals to pass to the shader
     float* directions;
     float* curvatures;
     float* randOffset;
-    int* indList;
     int gridSize = 1;
-    int gridSizez = 1;
+    int gridNum;
+    int waterVectorDis = 1; // distance for the water drainage vectors
     ofVec2f grad[SIZE][SIZE]; // store the average grad of the mesh
     ofVec3f visitedList[SIZE][SIZE]; // first digit: visited or not; second digit: parent; third digit: child
-    int waterColor[11][3] = {{51,110,255},{51,149,255},{51, 174, 255},{51,189,255},{51,209,255},{17,230,235},{17,235,192},{17,235,138},{235,206,17},{235,152,17},{235,82,17}};
+    int waterColor[11][3] = {{51,110,255},{51,149,255},{51, 174, 255},{51,189,255},{51,209,255},{17,230,235},{17,235,192},{17,235,138},{235,206,17},{235,152,17},{235,82,17}}; // color palette for water drainage
     Eigen::MatrixXd gradU;
     Eigen::MatrixXd gradV;
     Eigen::VectorXd curU;
@@ -164,9 +158,9 @@ public:
     bool bHide;
     
     ofSpherePrimitive sun;
+    
     ofVec2f up;
     ofVec2f down;
     ofVec2f left;
     ofVec2f right;
-    int gridNum;
 };

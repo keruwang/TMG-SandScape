@@ -211,16 +211,6 @@ void main() {
 //        }else
         {
             vec4 water_tex = texture(waterTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
-            if(u_waterMode > 1){
-                if(u_waterMode == 2 && length(water_tex.rgb) > 0.8  && water_tex.b <= water_tex.r) {
-                    water_tex.rgb = color;
-                    water_tex.rgb = mix(vec3(0.,.3,1.), color, clamp(pow((vPos.z/u_height + 0.8 + 0.05 * noise(vPos)),20.), 0.,1.));
-                } else if(u_waterMode == 3 && length(water_tex.rgb) > 0.8){
-                    if(water_tex.b > water_tex.r) water_tex.rgb = color;
-                } else if(u_waterMode == 5 && length(water_tex.rgb) > 0.8){
-                    water_tex.rgb = white;
-                }
-            }
             // contour line
             float stiffness = 1. - abs(dot(normalize(vNor), vec3(0.,0.,1.)));
             //        float stiffness = .9;
@@ -231,30 +221,28 @@ void main() {
                 //                if(i % 3 == 0) scale = 2.;
                 if(vPos.z > i * unit - scale * strokeWeight && vPos.z < i * unit + scale * strokeWeight) {
                     //                color = black;
-//                    color *= u_lineDarkness;
-                    color = white;
+                    color *= u_lineDarkness;
+//                    color = u_lineDarkness * white;
                 }
             }
+//            if(u_waterMode > 1){
+                if(u_waterMode == 2 && length(water_tex.rgb) > 0.8  && water_tex.b <= water_tex.r) {
+                    water_tex.rgb = color;
+                } else if(u_waterMode == 3 && length(water_tex.rgb) > 0.8){
+                    if(water_tex.b > water_tex.r) water_tex.rgb = color;
+                } else if(u_waterMode == 5 && length(water_tex.rgb) > 0.8){
+                    water_tex.rgb = white;
+                }
+//            }
 
             vec3 avg = vec3((color.r + color.g + color.b)/3.);
             float normCloud = u_cloud/5.;
-            float sc = u_mSaturation;
-//            float sc = max(normCloud,0.3);
+//            float sc = u_mSaturation;
+            float sc = max(normCloud,0.3);
             color = vec3(avg) + sc * (color - avg);
-            color *= u_mBrightness;
-//            color *= max(normCloud,0.3);
+//            color *= u_mBrightness;
+            color *= max(normCloud,0.3);
             gl_FragColor = vec4(color,u_mAlpha);
-           
-            if(length(water_tex.rgb) > 0.8){
-//                water_tex.rgb *= 1.5;
-//                if(normCloud < 0.3) {
-//                    water_tex.rgb *= (.5 + normCloud);
-//                    water_tex.rgb += 1.2 * water_tex.rgb * (1. - abs(sin(PI * (0.6 * u_time - floor(0.6 * u_time)) + 2. * PI * vPos.z/u_height)));
-//                }
-                color = mix(water_tex.rgb,color, u_wAlpha);
-                gl_FragColor = vec4(color,1.);
-                
-            }
             for (int i = 1; i < 15; i ++) {
                 float scale = 1.;
                 //                if(i % 3 == 0) scale = 2.;
@@ -262,8 +250,19 @@ void main() {
                     //                color = black;
 //                    color *= u_lineDarkness;
 //                    color = white;
-                    gl_FragColor = vec4(white,1.);
+                    gl_FragColor = vec4(1.5 * white * clamp(normCloud,0.3,1.),1.);
                 }
+            }
+           
+            if(length(water_tex.rgb) > 0.8 && normCloud < 0.5){
+//                water_tex.rgb *= 1.5;
+//                if(normCloud < 0.3) {
+//                    water_tex.rgb += 1.2 * water_tex.rgb * (1. - abs(sin(PI * (0.6 * u_time - floor(0.6 * u_time)) + 2. * PI * vPos.z/u_height)));
+//                }
+//                color = mix(water_tex.rgb,color, u_wAlpha);
+                color = mix(water_tex.rgb,color,2. * normCloud);
+                gl_FragColor = vec4(color,1.);
+                
             }
 
             

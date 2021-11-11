@@ -25,10 +25,9 @@ void ofApp::setup(){
     left.set(-1,0);
     right.set(1,0);
     // window display setup
-    ofSetWindowShape(5000, 1000);
+    ofSetWindowShape(1000, 1000);
     ofSetWindowPosition(-1, -1);
     //    ofSetLogLevel(OF_LOG_VERBOSE);
-    
     
     // enable depth->video image calibration
     kinect.setRegistration(true);
@@ -62,7 +61,6 @@ void ofApp::setup(){
     shader.load("shader");
     sunShader.load("sunShader");
     cloudShader.load("cloudShader");
-    rainShader.load("rainShader");
     
     // set the initial values to use for our perlinNoise
     perlinRange = 1.5;
@@ -112,7 +110,6 @@ void ofApp::setup(){
     normals = new float[3 * mainMesh.getNumVertices()];
     directions = new float[3 * mainMesh.getNumVertices()];
     randOffset = new float[mainMesh.getNumVertices()];
-    indList = new int[mainMesh.getNumVertices()];
     //    curvatures = new float[mainMesh.getNumIndices() / 3];
     slop = new ofVec3f[mainMesh.getNumVertices()];
     //    windField = new ofVec3f[mainMesh.getNumVertices()];
@@ -213,8 +210,8 @@ void ofApp::setup(){
 void ofApp::update(){
     // cout << ofGetFrameRate() << endl;
     
-//        if ((updateMesh || realTime)) {
-    if (false) {
+//        if ((updateMesh || realTime)) { // uncomment this if wish to use the Kinect data
+    if (false) { // uncomment this when testing without Kinect data
         kinect.update();
         
         if (kinect.isFrameNew()) {
@@ -238,26 +235,6 @@ void ofApp::update(){
             
             // add effects to smooth signal and reduce noise
             grayImageSmall.blur(3);
-            //                grayImageSmall.blurGaussian(blur);
-            //                grayImageSmall.blurHeavily();
-            //                grayImageSmall.dilate();
-            
-            //                for (int i = 0; i < nearThreshold - farThreshold; i ++) {
-            //                    grayThreshNear = grayImageSmall;
-            //                    grayThreshFar = grayImageSmall;
-            //                    grayThreshNear.threshold(farThreshold + 1 + 1, true);
-            //                    grayThreshFar.threshold(farThreshold + 1);
-            //                    cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImageSmall.getCvImage(), NULL);
-            //
-            //                    cvAddWeighted(grayImage_avg.getCvImage(), .51, grayImageSmall.getCvImage(), .49, 0.0, grayImage_avg.getCvImage());
-            //                    cvSmooth(grayImage_avg.getCvImage(), grayImage_avg.getCvImage(), CV_GAUSSIAN);
-            //
-            ////                    contourFinder.findContours(grayImage_avg, 200, (340*240)/3, 10, true);
-            //                }
-            //
-            //
-            //                cvAnd(grayImageSmall.getCvImage(), grayOverall.getCvImage(), grayOverall.getCvImage(), NULL);
-            
             unsigned char * pix = grayImageSmall.getPixels().getData();
             
             // draw image
@@ -274,12 +251,6 @@ void ofApp::update(){
                     double  depth = prevPix[index];
                     //                        double depth = currentDepth;
                     
-                    
-                    
-                    // boolean operations if inside sandbox boundaries and depth boundaries
-                    //                        bool isInBoundary = w < xRightBoundary/10 && w > xLeftBoundary/10 && h < yBottomBoundary/10 && h > yTopBoundary/10;
-                    bool isInBoundary = true;
-                    //                bool isInDepthBoundary = true;
                     bool isInDepthBoundary = currentDepth < nearThreshold && currentDepth > farThreshold;
                     
                     // set Timeout zone
@@ -308,18 +279,10 @@ void ofApp::update(){
                         
                         ofVec3f tmpVec = mainMesh.getVertex(h * (grayImageSmall.width) + grayImageSmall.getWidth() - w);
                         tmpVec.z = sqrt(ratioInDepth) * meshZ;
-                        //                            cout << tmpVec.z << " ";
-                        //                            if (ofGetMouseX() == w && ofGetMouseY() == h) {
-                        //                                cout << tmpVec.z << endl;
-                        //                            }
                         mainMesh.setVertex((h)*(grayImageSmall.width)+(grayImageSmall.getWidth() - w), tmpVec);
-                        
-                        //cout << "TEST" << endl;
                     } else {
                         
                         ofVec3f tmpVec = mainMesh.getVertex(h * grayImageSmall.width + (grayImageSmall.getWidth() - w));
-                        //                            tmpVec.z = -0.1;
-                        
                         if(currentDepth < nearThreshold) tmpVec.z = 0;
                         else if(currentDepth > farThreshold) tmpVec.z = meshZ;
                         
@@ -372,10 +335,8 @@ void ofApp::update(){
                 else grad[i][j].set(ofNoise(10 * i),ofNoise(10 * j));
             }
         }
-        //        bulletMesh->updateMesh( world.world, mainMesh );
-        //        updateMesh = false;
     }
-    
+    // update values from GUI
     cloudAmount = cloud;
     lineDarkness = contourLineDarkness;
     specular = shadowContrast;
@@ -384,104 +345,9 @@ void ofApp::update(){
     wAlpha = waterAlpha;
     mBrightness = meshBrightness;
     mSaturation = meshSaturation;
-    gridSizez = grid;
-    
-    
-    //------------ draw water drainage as jittering lines with particles -----------------------------------
-    //    fbo_grad.begin();
-    //    ofClear(0,0,0,0);
-    //    fbo_grad.end();
-    //    particles.clear();
-    //    for(int i = 0; i < meshX; i+= 5) {
-    //        for (int j = 0; j < meshY; j += 5) {
-    //            int ind = i * meshX + j;
-    //            Particle newParticle;
-    //            ofVec3f pos = mainMesh.getVertex(ind);
-    //            //            if(pos.z > 0.1 * meshZ) {
-    //            ofVec3f norm(N.row(ind)[0],N.row(ind)[1],N.row(ind)[2]);
-    //            float dot = abs(norm.dot(gravity));
-    //            //                if(dot > 0.85 && dot < 0.99) {
-    //            ofVec3f white(255, 255, 255);
-    //            newParticle.setup(pos, white);
-    //            particles.push_back(newParticle);
-    //        }
-    //    }
-    //
-    //    fbo_grad.begin();
-    //    ofPushStyle();
-    //    for (int i = 0; i < particles.size(); i ++) {
-    //        particles[i].updateDuration(0.);
-    //        if (particles[i].isDead()) {
-    //            particles.erase(particles.begin() + i);
-    //        }
-    //        for(int k = 0; k < 5; k ++) {
-    //            ofVec3f moveDir;
-    //            ofVec2f pxy(particles[i].pos.x,particles[i].pos.y);
-    //            if(pxy.x > -25 && pxy.x < 25 && pxy.y > -25 && pxy.y < 25 ) {
-    //                int indP = (int)(round(particles[i].pos.x) + 25) * meshX + (int)(round(particles[i].pos.y)+25);
-    //                moveDir.set(3 * slop[indP]);
-    //                particles[i].move(moveDir);
-    //                ofVec2f cxy(particles[i].pos.x,particles[i].pos.y);
-    //                if(pxy.x > -25 && pxy.x < 25 && pxy.y > -25 && pxy.y < 25 ) {
-    //                    int indC = (int)(round(particles[i].pos.x) + 25) * meshX + (int)(round(particles[i].pos.y)+25);
-    //                    particles[i].pos = mainMesh.getVertex(indC);
-    //                ofSetLineWidth(3);
-    //                ofSetColor(k * 15, 0, 0);
-    //                ofDrawLine(250 + pxy.x * 10, 250 + pxy.y * 10, 250 + cxy.x * 10, 250 + cxy.y * 10);
-    //                }
-    //                if(pxy.distance(cxy) < 0.01) {
-    //                    particles.erase(particles.begin() + i);
-    //                     break;
-    //                }
-    //                //                particles[i].draw(1.);
-    //            } else {
-    //                particles.erase(particles.begin() + i);
-    //                break;
-    //            }
-    //        }
-    //    }
-    //    int num = particles.size();
-    //    for (int i = 0; i < num; i ++) {
-    //        Particle newParticle;
-    //        ofVec3f white(255, 255, 255);
-    //        ofVec3f pos(particles[i].pos.x + 2,particles[i].pos.y + 2,particles[i].pos.z);
-    //        newParticle.setup(pos, white);
-    //        particles.push_back(newParticle);
-    //        ofDrawLine(250 + pos.x * 10, 250 + pos.y * 10, 250 + particles[i].pos.x * 10, 250 + particles[i].pos.y * 10);
-    //    }
-    //    for (int i = 0; i < particles.size(); i ++) {
-    //        particles[i].updateDuration(0.);
-    //        if (particles[i].isDead()) {
-    //            particles.erase(particles.begin() + i);
-    //        }
-    //        for(int k = 0; k < 10; k ++) {
-    //            ofVec3f moveDir;
-    //            ofVec2f pxy(particles[i].pos.x,particles[i].pos.y);
-    //            if(pxy.x > -25 && pxy.x < 25 && pxy.y > -25 && pxy.y < 25 ) {
-    //                int indP = (int)(round(particles[i].pos.x) + 25) * meshX + (int)(round(particles[i].pos.y)+25);
-    //                moveDir.set(3 * slop[indP]);
-    //                particles[i].move(moveDir);
-    //                ofVec2f cxy(particles[i].pos.x,particles[i].pos.y);
-    //                if(pxy.x > -25 && pxy.x < 25 && pxy.y > -25 && pxy.y < 25 ) {
-    //                    int indC = (int)(round(particles[i].pos.x) + 25) * meshX + (int)(round(particles[i].pos.y)+25);
-    //                    particles[i].pos = mainMesh.getVertex(indC);
-    //                ofSetLineWidth(3);
-    //                ofSetColor(75 + k * 15, 0, 0);
-    //                ofDrawLine(250 + pxy.x * 10, 250 + pxy.y * 10, 250 + cxy.x * 10, 250 + cxy.y * 10);
-    //                }
-    //                if(pxy.distance(cxy) < 0.05) {
-    //                    particles.erase(particles.begin() + i);
-    //                     break;
-    //                }
-    //                //                particles[i].draw(1.);
-    //            } else {
-    //                particles.erase(particles.begin() + i);
-    //                break;
-    //            }
-    //        }
-    //    }
-    //    ofPopStyle();
-    //    fbo_grad.end();
+    waterVectorDis = grid;
+    // move the sun in shadow shading 3D display
+    sun.setPosition(50 * cos(ofGetElapsedTimef()),0,50 * sin(ofGetElapsedTimef()));
     
     //---------------------------------- season change -----------------------------------
     //    if (season == 0) {
@@ -579,28 +445,6 @@ void ofApp::update(){
     //        if(snowHeight < 7) snowHeight += 0.002*(7 - snowHeight);
     //        flowers.clear();
     //    }
-    sun.setPosition(40 * cos(ofGetElapsedTimef()),0,40 * sin(ofGetElapsedTimef()));
-    
-    //---------------------------------- display 3D rain particle system -----------------------------------
-    //    if(displayRain) {
-    //        if( bulletSpheres.size() < 200 ) {
-    //            shared_ptr< ofxBulletSphere > sphere( new ofxBulletSphere() );
-    //            float trad = fabs(sin( ofGetElapsedTimef() ) * 5);
-    //            sphere->create( world.world, ofVec3f( ofRandom(-12.5,12.5), ofRandom(-12.5,12.5), 24.5), 10., 0.15 );
-    //            sphere->add();
-    //            bulletSpheres.push_back( sphere );
-    //        }
-    //
-    //        for( int i = 0; i < bulletSpheres.size(); i++ ) {
-    //            ofVec3f spos = bulletSpheres[i]->getPosition();
-    //            if( spos.z < 0 ) {
-    //                bulletSpheres.erase( bulletSpheres.begin() + i );
-    //                break;
-    //            }
-    //        }
-    //        world.update( ofGetLastFrameTime(), 12 );
-    //    }
-    
     //---------------------------------- draw water drainage vectors based on classification -----------------------------------
    
 
@@ -637,7 +481,7 @@ void ofApp::update(){
         //        }
         // find path based on the vectors
 //    if(ofGetFrameNum() % 180 == 0) {
-    int temp = gridSizez;
+    int temp = waterVectorDis;
         for (int i = 0; i < gridNum; i += temp) {
             for (int j = 0; j < gridNum; j += temp) {
                 visitedList[i][j].set(0,-1,-1);
@@ -667,8 +511,6 @@ void ofApp::update(){
                         float y1 = offSet + mainMesh.getVertex(ind1).y * 10;
                         float x2 = offSet + mainMesh.getVertex(ind2).x * 10;
                         float y2 = offSet + mainMesh.getVertex(ind2).y * 10;
-//                        ofSetLineWidth(6);
-//                        int ind = min(travelStep,10);
                         float stiff =  mainMesh.getVertex(ind1).z -  mainMesh.getVertex(ind2).z;
                         int ind = min((int)(stiff * 5 / (gridSize * gridSize)) ,10);
                         if(waterMode < 2) ofSetColor(waterColor[ind][0],waterColor[ind][1],waterColor[ind][2]);
@@ -681,7 +523,7 @@ void ofApp::update(){
                             int dn = 2 * (circleNum - 1);
                             float x = x1 + 2 * k * dx/dn;
                             float y = y1 + 2 * k * dy/dn;
-                            ofDrawCircle(x + 1.8 * (-1 + cloudAmount * ofNoise(y/10)),y + cloudAmount * (-1 + 4 * ofNoise(x/10)), d/(dn - 1));
+                            ofDrawCircle(x + 1.8 * (-1 + 3. * ofNoise(y/10)),y + 3. * (-1 + 3. * ofNoise(x/10)), d/(dn - 1));
                         }
                         float time = ofClamp(0.5 * ind, 1, 3) * ofGetElapsedTimef();
                         float ratio = (time - floor(time));
@@ -690,13 +532,13 @@ void ofApp::update(){
                             if(waterMode == 1 || waterMode > 1) ofSetColor(0, 100, 255);
                             float x = x1 + ratio * dx;
                             float y = y1 + ratio * dy;
-                            ofDrawCircle(x + 1.8 * (-1 + cloudAmount * ofNoise(y/10)),y + 1.8 * (-1 + cloudAmount * ofNoise(x/10)), dotSize);
+                            ofDrawCircle(x + 1.8 * (-1 + 3. * ofNoise(y/10)),y + 1.8 * (-1 + 3. * ofNoise(x/10)), dotSize);
                             float xb = x1 + (ratio-0.15) * dx;
                             float yb = y1 + (ratio-0.15) * dy;
                             float xa = x1 + (ratio+0.15) * dx;
                             float ya = y1 + (ratio+0.15) * dy;
-                            ofDrawCircle(xb + 1.5 * (-1 + cloudAmount * ofNoise(yb/10)),yb + 1.5 * (-1 + cloudAmount * ofNoise(xb/10)), dotSize - 0.5);
-                            ofDrawCircle(xa + 1.5 * (-1 + cloudAmount * ofNoise(ya/10)),ya + 1.5 * (-1 + cloudAmount * ofNoise(xa/10)), dotSize - 0.5);
+                            ofDrawCircle(xb + 1.5 * (-1 + 3. * ofNoise(yb/10)),yb + 1.5 * (-1 + 3. * ofNoise(xb/10)), dotSize - 0.5);
+                            ofDrawCircle(xa + 1.5 * (-1 + 3. * ofNoise(ya/10)),ya + 1.5 * (-1 + 3. * ofNoise(xa/10)), dotSize - 0.5);
                             ofPopStyle();
                         }
                         currentNode = visitedList[ind2X][ind2Y];
@@ -707,10 +549,10 @@ void ofApp::update(){
                 }
             }
         }
+    // TODO: this part is added as a quick fix to the tree traversal bug of my quick and dirty water drainage path finding algrithom. I will change the structre of the path finding tree and eventually this part will be removed
         for (int x = 0; x < 1; x ++) {
             for (int i = 0; i < gridNum; i +=temp) {
                 for (int j = 0; j < gridNum; j +=temp) {
-        //            cout<<visitedList[i][j]<<endl;
                     int indOff = i * meshX * gridSize + j * gridSize;
                     int ind2p = visitedList[i][j].z;
                     int ind2Xp = floor(ind2p * gridSize / meshX);
@@ -729,8 +571,6 @@ void ofApp::update(){
                             float y1 = 10 * (meshX/2) + mainMesh.getVertex(ind1).y * 10;
                             float x2 = 10 * (meshY/2) + mainMesh.getVertex(ind2).x * 10;
                             float y2 = 10 * (meshY/2) + mainMesh.getVertex(ind2).y * 10;
-    //                        ofSetLineWidth(6);
-//                            int ind = min(travelStep,10);
                             float stiff =  mainMesh.getVertex(ind1).z -  mainMesh.getVertex(ind2).z;
                             int ind = min((int)(stiff * 5 / (gridSize * gridSize)) ,10);
                             if(waterMode < 2) ofSetColor(waterColor[ind][0],waterColor[ind][1],waterColor[ind][2]);
@@ -819,7 +659,7 @@ void ofApp::draw(){
     ofEnableDepthTest();
     mainMesh.drawFaces();
     shader.end();
-    //        renderVectorField(V, F, gradV, curV, windU, slop, vectorFieldMode);
+    //        renderVectorField(V, F, gradV, curV, windU, slop, vectorFieldMode); // for debugging the slop vector field
     if(u_mode == 3){
         sunShader.begin();
         sun.draw();
@@ -828,24 +668,14 @@ void ofApp::draw(){
     ofDisableDepthTest();
     if(u_mode == 1) {
         cloudShader.begin();
-        ofDrawRectangle(-25, -25, 25, 50, 50);
+        ofDrawRectangle(-30, -30, 40, 60, 60);
         cloudShader.end();
-        if(displayRain){
-            rainShader.begin();
-            for( int i = 0; i < bulletSpheres.size(); i++ ) {
-                bulletSpheres[i]->draw();
-            }
-            rainShader.end();
-            
-        }
     }
-    
     mainCam.end();
     
     if(!bHide){
         gui.draw();
     }
-    //    croppedImg.draw(ofGetMouseX(),ofGetMouseY(),cropped_w,cropped_h);
 }
 
 //--------------------------------------------------------------
@@ -854,88 +684,9 @@ void ofApp::exit() {
     kinect.close();
 }
 
-//--------------------------------------------------------------
-//void ofApp::findPath(int indX, int indY) {
-//    // visitedList vec3
-//    // digit 1: visited or not; digit 2: parent, digit 3: child
-//    int time = (int)(ofGetFrameNum()/80);
-//    if(visitedList[indX][indY].x == 0) {
-//        int ind1 = indX * gridSize * meshX + indY * gridSize;
-//        visitedList[indX][indY].x ++; // marked as visited
-//        visitedList[indX][indY].y ++; // give it a length
-//        ofVec2f gradient1 = grad[indX][indY];
-//        int indXX = indX;
-//        int indYY = indY;
-//        if(gradient1.dot(up) > water) indYY --;
-//        else if(gradient1.dot(down) > water) indYY ++;
-//        if(gradient1.dot(right) > water) indXX ++;
-//        else if(gradient1.dot(left) > water) indXX --;
-//        if(indXX >=0 && indXX < gridNum && indYY >=0 && indYY < gridNum && (indXX != indX || indYY != indY)) {
-//            int ind2 = indXX * gridSize * meshX + indYY * gridSize;
-//            ofVec2f gradient2 = grad[indXX][indYY];
-//            ofVec3f slop1 = slop[ind1];
-//            ofVec3f slop2 = slop[ind2];
-//            float z1 = mainMesh.getVertex(ind1).z;
-//            float z2 = mainMesh.getVertex(ind2).z;
-//            if(gradient1.dot(gradient2) > 0) { // && visitedList[indX][indY].y < randOffset[ind1] && visitedList[indXX][indYY].y < randOffset[ind1]
-//                if (z1 > z2) {
-//                    float x1 = 250 + mainMesh.getVertex(ind1).x * 10 + gridSize;
-//                    float y1 = 250 + mainMesh.getVertex(ind1).y * 10 + gridSize;
-//                    float x2 = 250 + mainMesh.getVertex(ind2).x * 10 + gridSize;
-//                    float y2 = 250 + mainMesh.getVertex(ind2).y * 10 + gridSize;
-//                    ofPushStyle();
-//                    visitedList[indXX][indYY].y += visitedList[indX][indY].y; // ((int)(1.5 * (z1 - z2))) *
-//                    int ind = (int)(visitedList[indXX][indYY].y-1) % 8;
-//                    ofSetColor(ind * 50,0,0);
-////                    ofSetColor(waterColor[ind][0],waterColor[ind][1],waterColor[ind][2]);
-//                    //                    if (time % 8 == ind) ofSetColor(0,0,200);
-//                    ofSetLineWidth(10);
-//                    ofDrawLine(x1, y1, x2, y2);
-//                    ofPopStyle();
-//                    findPath(indXX,indYY);
-//                }
-//                else if(z2 > z1) {
-//                    float x1 = 250 + mainMesh.getVertex(ind1).x * 10 + gridSize;
-//                    float y1 = 250 + mainMesh.getVertex(ind1).y * 10 + gridSize;
-//                    float x2 = 250 + mainMesh.getVertex(ind2).x * 10 + gridSize;
-//                    float y2 = 250 + mainMesh.getVertex(ind2).y * 10 + gridSize;
-//                    ofPushStyle();
-//                    //                    visitedList[indX][indY].y += visitedList[indXX][indYY].y; // ((int)(1.5 * (z2 - z1))) *
-//                    visitedList[indXX][indYY].y += visitedList[indX][indY].y; // ((int)(1.5 * (z1 - z2))) *
-//                    //                    ofSetColor(80 + 40 * abs(z1 - z2),120 +  40 * abs(z1 - z2),250 - 30 * abs(z1 - z2));
-//                    int ind = (int)(visitedList[indXX][indYY].y - 1) % 8;
-//                    ofSetColor(0,0,ind * 50);
-////                    ofSetColor(waterColor[ind][0],waterColor[ind][1],1.5 * waterColor[ind][2]);
-//                    ofSetLineWidth(10);
-//                    ofDrawLine(x1, y1, x2, y2);
-//                    ofPopStyle();
-//                    findPath(indXX,indYY);
-//
-//                }
-////                else {
-////                    float x1 = 250 + mainMesh.getVertex(ind1).x * 10 + gridSize;
-////                    float y1 = 250 + mainMesh.getVertex(ind1).y * 10 + gridSize;
-////                    float x2 = 250 + mainMesh.getVertex(ind2).x * 10 + gridSize;
-////                    float y2 = 250 + mainMesh.getVertex(ind2).y * 10 + gridSize;
-////                    ofPushStyle();
-////                    visitedList[indX][indY].y += visitedList[indXX][indYY].y; // ((int)(1.5 * (z2 - z1))) *
-////                    //                    ofSetColor(80 + 40 * abs(z1 - z2),120 +  40 * abs(z1 - z2),250 - 30 * abs(z1 - z2));
-////                    int ind = (int)(max(visitedList[indX][indY].y,visitedList[indXX][indYY].y)-1) % 8;
-////                    ofSetColor(0.9 * waterColor[ind][0],0.9 * waterColor[ind][1],0.9 * waterColor[ind][2]);
-////                    ofSetLineWidth(10);
-////                    ofDrawLine(x1, y1, x2, y2);
-////                    ofPopStyle();
-////                    findPath(indXX,indYY);
-////
-////                }
-//            }
-//        }
-//    } else return;
-//}
-
 //--------------------- do 8 classification -----------------------------------------
 void ofApp::findPath(int indX, int indY) {
-    int temp = gridSizez;
+    int temp = waterVectorDis;
     // visitedList vec3
     // digit 1: visited or not; digit 2: parent, digit 3: child
     if(visitedList[indX][indY].x == 0) {
@@ -970,41 +721,10 @@ void ofApp::findPath(int indX, int indY) {
     } else return;
 }
 
-//--------------------- do 16 classification -----------------------------------------
+
+//--------------------- do 8n classification -----------------------------------------
+// TODO: create an algrithom that can generate water drainage vectors in 8n direcitons
 //void ofApp::findPath(int indX, int indY) {
-//    int temp = gridSizez;
-//    // visitedList vec3
-//    // digit 1: visited or not; digit 2: parent, digit 3: child
-//    if(visitedList[indX][indY].x == 0) {
-//        int ind1 = indX * gridSize * meshX + indY * gridSize;
-//        visitedList[indX][indY].x ++; // marked as visited
-//        ofVec2f gradient1 = grad[indX][indY];
-//        int indXX = indX;
-//        int indYY = indY;
-//        if(gradient1.dot(up) > water) indYY -=temp;
-//        else if(gradient1.dot(down) > water) indYY +=temp;
-//        if(gradient1.dot(right) > water) indXX +=temp;
-//        else if(gradient1.dot(left) > water) indXX -=temp;
-//        if(indXX >=0 && indXX < gridNum && indYY >=0 && indYY < gridNum && (indXX != indX || indYY != indY)) {
-//            int ind2 = indXX * gridSize * meshX + indYY * gridSize;
-//            ofVec2f gradient2 = grad[indXX][indYY];
-//            ofVec3f slop1 = slop[ind1];
-//            ofVec3f slop2 = slop[ind2];
-//            float z1 = mainMesh.getVertex(ind1).z;
-//            float z2 = mainMesh.getVertex(ind2).z;
-//            if(gradient1.dot(gradient2) > 0) {
-//                if (z1 > z2) { // from high to low
-//                    visitedList[indX][indY].z = ind2; // current node has child ind2
-//                    visitedList[indXX][indYY].y = ind1; // current node has parent ind1
-//                    findPath(indXX,indYY);
-//                } else if(z1 < z2){ // from low to high
-//                    visitedList[indX][indY].y = ind2; // current node has parent ind2
-//                    visitedList[indXX][indYY].z = ind1; // current node has child ind1
-//                    findPath(indXX,indYY);
-//                }
-//            }
-//        }
-//    } else return;
 //}
 
 //--------------------------------------------------------------
@@ -1073,7 +793,7 @@ void ofApp::constructWindField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Ma
 
 //--------------------------------------------------------------
 void ofApp::renderVectorField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXd &grad, Eigen::VectorXd &cur, Eigen::MatrixXd &wind, ofVec3f* slop, float vectorFieldMode) {
-    if(vectorFieldMode == 0) {
+    if(vectorFieldMode == 0) { // draw slop field
         for (int i = 0; i < mainMesh.getNumVertices(); i ++) {
             //            ofDrawLine(V.row(i)[0], V.row(i)[1], V.row(i)[2],V.row(i)[0] + slop[i].x,V.row(i)[1] + slop[i].y,V.row(i)[2] + slop[i].z);
             ofVec3f arrowTailPoint(V.row(i)[0], V.row(i)[1], V.row(i)[2]);
@@ -1091,7 +811,7 @@ void ofApp::renderVectorField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Mat
         // draw gradiant field
         //            ofDrawLine(V.row(i)[0], V.row(i)[1], V.row(i)[2], V.row(i)[0] + scale * cur[i] * grad.row(i)[0], V.row(i)[1] + scale * cur[i] * grad.row(i)[1], V.row(i)[2] + scale * cur[i] * grad.row(i)[2]);
         //        }
-    } else {
+    } else { // draw wind field created using harmonic weight
         double avg = 10 * igl::avg_edge_length(V, F);
         for (int i = 0; i < wind.rows(); i ++) {
             ofDrawLine(BC.row(i)[0], BC.row(i)[1], BC.row(i)[2], BC.row(i)[0] + avg * wind.row(i)[0], BC.row(i)[1] + avg * wind.row(i)[1], BC.row(i)[2] + avg * wind.row(i)[2]);
