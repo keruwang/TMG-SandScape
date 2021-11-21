@@ -17,6 +17,7 @@ float mAlpha = 1.;
 float wAlpha = 0.;
 float mBrightness = 1.;
 float mSaturation = 1.;
+
 //--------------------------------------------------------------
 void ofApp::setup(){
     // initsialize the standard vectors
@@ -204,6 +205,12 @@ void ofApp::setup(){
     //    bulletMesh->setActivationState( DISABLE_DEACTIVATION );
     
     //    ofSetFrameRate(2);
+    
+    for(int i = 0; i < SIZE; i ++) {
+        for(int j = 0; j < SIZE; j ++) {
+            vectorList[i][j] = new WaterDrainage();
+        }
+    }
 }
 
 //--------------------------------------------------------------
@@ -445,8 +452,8 @@ void ofApp::update(){
     //        if(snowHeight < 7) snowHeight += 0.002*(7 - snowHeight);
     //        flowers.clear();
     //    }
-    //---------------------------------- draw water drainage vectors based on classification -----------------------------------
-   
+    //---------------------------------- draw water drainage vectors based on 8 classification -----------------------------------
+
 
         fbo_grad.begin();
         ofPushStyle();
@@ -578,7 +585,7 @@ void ofApp::update(){
                             float dx = x2 - x1;
                             float dy = y2 - y1;
                             float d = ofDist(x1, y1, x2, y2);
-      
+
                             int circleNum = lineWidth * gridSize;
                             for(int k = 0; k < circleNum; k ++) {
                                 int dn = 2 * (circleNum - 1);
@@ -586,13 +593,13 @@ void ofApp::update(){
                                 float y = y1 + 2 * k * dy/dn;
                                 ofDrawCircle(x + 1.8 * (-1 + cloudAmount * ofNoise(y/dn)),y + 1.8 * (-1 + cloudAmount * ofNoise(x/dn)), d/dn);
                             }
-                            
+
     //                        if((travelStep + (int)randOffset[indOff]) % 8 == (int)time % 8) {
     //                            ofPushStyle();
     //                            ofDrawCircle(x1 + ratio * dx, y1 + ratio * dy, 2);
     //                            ofPopStyle();
     //                        }
-                           
+
                             currentNode = visitedList[ind2X][ind2Y];
                             visitedList[ind2X][ind2Y].x = 0;
                             ind1 = ind2;
@@ -602,11 +609,49 @@ void ofApp::update(){
                 }
             }
         }
-      
-        
-        ofPopStyle();
-        fbo_grad.end();
+    ofPopStyle();
+    fbo_grad.end();
 
+    //---------------------------------- draw water drainage vectors based on 8n classification -----------------------------------
+//    if(ofGetFrameNum() % 180 == 0) {
+//    fbo_grad.begin();
+//    ofPushStyle();
+//    ofSetColor(0, 0, 0);
+//    ofDrawRectangle(0, 0, meshX * 10, meshY * 10);
+//    int temp = waterVectorDis;
+//    for (int i = 0; i < gridNum; i ++) {
+//        for (int j = 0; j < gridNum; j ++) {
+//            vectorList[i][j]->init();
+//        }
+//    }
+//
+//    for (int i = 0; i < gridNum; i ++) {
+//        for (int j = 0; j < gridNum; j ++) {
+//            vectorList[i][j]->findPath(i, j, mainMesh, vectorList, grad);
+//        }
+//    }
+//
+//    for (int i = 0; i < gridNum; i ++) {
+//        for (int j = 0; j < gridNum; j ++) {
+//            WaterDrainage* vec = vectorList[i][j];
+//            if(vec->parent == nullptr) { // is a root
+//                while(vec->child != nullptr && vec->visited) { // has not been visited and has child
+//                    vec->visited = false; // flip its visited bit
+//                    ofPushStyle();
+//                    ofSetColor(200,200,200);
+//                    ofSetLineWidth(6);
+//                    float offSet = meshX * 5;
+//                    ofDrawLine(offSet + vec->startPos.x * 10, offSet + vec->startPos.y * 10, offSet + vec->child->startPos.x * 10, offSet + vec->child->startPos.y * 10);
+//                    ofPopStyle();
+//                    vec = vec->child;
+//                }
+//            }
+//        }
+//    }
+//
+//        ofPopStyle();
+//        fbo_grad.end();
+//    }
 }
 
 //--------------------------------------------------------------
@@ -659,7 +704,7 @@ void ofApp::draw(){
     ofEnableDepthTest();
     mainMesh.drawFaces();
     shader.end();
-    //        renderVectorField(V, F, gradV, curV, windU, slop, vectorFieldMode); // for debugging the slop vector field
+//    renderVectorField(V, F, gradV, curV, windU, slop, 0); // for debugging the slop vector field
     if(u_mode == 3){
         sunShader.begin();
         sun.draw();
@@ -695,10 +740,10 @@ void ofApp::findPath(int indX, int indY) {
         ofVec2f gradient1 = grad[indX][indY];
         int indXX = indX;
         int indYY = indY;
-        if(gradient1.dot(up) > water) indYY -=temp;
-        else if(gradient1.dot(down) > water) indYY +=temp;
-        if(gradient1.dot(right) > water) indXX +=temp;
-        else if(gradient1.dot(left) > water) indXX -=temp;
+        if(gradient1.dot(up) > water) indXX -=temp;
+        else if(gradient1.dot(down) > water) indXX +=temp;
+        if(gradient1.dot(right) > water) indYY +=temp;
+        else if(gradient1.dot(left) > water) indYY -=temp;
         if(indXX >=0 && indXX < gridNum && indYY >=0 && indYY < gridNum && (indXX != indX || indYY != indY)) {
             int ind2 = indXX * gridSize * meshX + indYY * gridSize;
             ofVec2f gradient2 = grad[indXX][indYY];
@@ -720,12 +765,6 @@ void ofApp::findPath(int indX, int indY) {
         }
     } else return;
 }
-
-
-//--------------------- do 8n classification -----------------------------------------
-// TODO: create an algrithom that can generate water drainage vectors in 8n direcitons
-//void ofApp::findPath(int indX, int indY) {
-//}
 
 //--------------------------------------------------------------
 void ofApp::updateMeshInfo(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXd &N, float* normals) {

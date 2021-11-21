@@ -8,8 +8,9 @@
 #include "ofxKinect.h"
 #include "ofxGui.h"
 #include "Particle.h"
+#include "WaterDrainage.h"
 
-#define SIZE 80
+#define SIZE 50
 
 extern float u_mode, snowHeight, meshX, meshY, meshZ, cloudAmount, lineDarkness, specular, shadowRate, wAlpha, mAlpha, mBrightness, mSaturation;
 extern int season, waterMode;
@@ -59,12 +60,14 @@ public:
     float* normals; // unpack the normals to pass to the shader
     float* directions;
     float* curvatures;
+    ofVec3f* slop;
     float* randOffset;
     int gridSize = 1;
     int gridNum;
     int waterVectorDis = 1; // distance for the water drainage vectors
     ofVec2f grad[SIZE][SIZE]; // store the average grad of the mesh
     ofVec3f visitedList[SIZE][SIZE]; // first digit: visited or not; second digit: parent; third digit: child
+    WaterDrainage* vectorList[SIZE][SIZE];
     int waterColor[11][3] = {{51,110,255},{51,149,255},{51, 174, 255},{51,189,255},{51,209,255},{17,230,235},{17,235,192},{17,235,138},{235,206,17},{235,152,17},{235,82,17}}; // color palette for water drainage
     Eigen::MatrixXd gradU;
     Eigen::MatrixXd gradV;
@@ -77,7 +80,6 @@ public:
     vector <Particle> flowers;
     ofVec3f gravity;
     ofVec3f wind;
-    ofVec3f* slop;
     ofVec3f* windField;
     ofFbo fbo_water;
     ofFbo fbo_particle;

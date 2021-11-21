@@ -1,6 +1,6 @@
 //
 //  Particale.cpp
-//  libigl_try
+//  sandScape
 //
 //  Created by Keru Wang on 13/6/2021.
 //
