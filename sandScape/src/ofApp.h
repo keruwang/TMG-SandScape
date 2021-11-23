@@ -84,6 +84,7 @@ public:
     ofFbo fbo_water;
     ofFbo fbo_particle;
     ofFbo fbo_topView;
+    ofFbo fbo_sideView;
     ofFbo fbo_grad;
     
     // For Kinect
