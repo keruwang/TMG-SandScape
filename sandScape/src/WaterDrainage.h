@@ -9,7 +9,7 @@
 
 #include "ofMain.h"
 #define NUM 8
-#define SIZE 50
+#define SIZE 80
 
 class WaterDrainage {
 public:
