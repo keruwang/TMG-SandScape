@@ -49,8 +49,10 @@ vec3 clouds(float y) {
 
 void main() {
     if(u_cloud < 4.99) {
-        vec3 p = 8. * vPos/50. + vec3(0., 0., .5* u_time);
-        vec3 color = clouds(1. - u_cloud * abs((vPos.x)/(25. + 3. *abs(sin(0.2 * u_time)))) - u_cloud * abs((vPos.y)/(9. + 3. *abs(sin(0.2 * u_time)))) +3.*turbulence(p/3.) );
-        gl_FragColor = vec4(.5 * sqrt(color), length(color) - (abs(vPos.y)/25.5 + abs(vPos.x)/25.5));
+        float cloud = u_cloud;
+        if(cloud < 0.5) cloud = 0.5;
+        vec3 p = 8. * vPos/50. + vec3(0., 0., .5 * u_time);
+        vec3 color = clouds(1. - cloud * abs((vPos.x)/(25. + 3. *abs(sin(0.2 * u_time)))) - cloud * abs((vPos.y)/(9. + 3. *abs(sin(0.2 * u_time)))) +3.*turbulence(p/3.) );
+        gl_FragColor = vec4(.3 * sqrt(color), length(color) - (abs(vPos.y)/25.5 + abs(vPos.x)/25.5));
     }
 }
