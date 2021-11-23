@@ -161,7 +161,7 @@ void ofApp::setup(){
     
     gui.add(smoothRound.setup("smoothRound", smoothRound_, 0, 25));
     gui.add(smoothWeight.setup("smoothWeight", smoothWeight_, 0, 10));
-    gui.add(cloud.setup("cloud", cloud_, 0.5, 5));
+    gui.add(cloud.setup("cloud", cloud_, 0., 0.3));
     gui.add(water.setup("water", water_, 0, 1));
     gui.add(contourLineDarkness.setup("contourLineDarkness", contourLineDarkness_, 0, 1));
     gui.add(shadowContrast.setup("shadowContrast", specular_, 0, 100));
@@ -217,7 +217,7 @@ void ofApp::setup(){
 void ofApp::update(){
     // cout << ofGetFrameRate() << endl;
     
-//        if ((updateMesh || realTime)) { // uncomment this if wish to use the Kinect data
+    //        if ((updateMesh || realTime)) { // uncomment this if wish to use the Kinect data
     if (false) { // uncomment this when testing without Kinect data
         kinect.update();
         
@@ -344,7 +344,9 @@ void ofApp::update(){
         }
     }
     // update values from GUI
-    cloudAmount = cloud;
+//    cloudAmount = cloud;
+    float cloudChangeSpeed = cloud;
+    cloudAmount = ofClamp(2.5 + 5 * sin(cloud * ofGetElapsedTimef()),0,5);
     lineDarkness = contourLineDarkness;
     specular = shadowContrast;
     shadowRate = shadowRatio;
@@ -453,8 +455,7 @@ void ofApp::update(){
     //        flowers.clear();
     //    }
     //---------------------------------- draw water drainage vectors based on 8 classification -----------------------------------
-
-
+    
         fbo_grad.begin();
         ofPushStyle();
         ofSetColor(0, 0, 0);
@@ -487,8 +488,10 @@ void ofApp::update(){
         //            }
         //        }
         // find path based on the vectors
-//    if(ofGetFrameNum() % 180 == 0) {
+        //    if(ofGetFrameNum() % 180 == 0) {
     int temp = waterVectorDis;
+    if(ofGetFrameNum() % 360 == 0) {
+        
         for (int i = 0; i < gridNum; i += temp) {
             for (int j = 0; j < gridNum; j += temp) {
                 visitedList[i][j].set(0,-1,-1);
@@ -499,7 +502,8 @@ void ofApp::update(){
                 findPath(i,j);
             }
         }
-//    }
+    }
+        //    }
         for (int i = 0; i < gridNum; i +=temp) {
             for (int j = 0; j < gridNum; j +=temp) {
                 int indOff = i * meshX * gridSize + j * gridSize;
@@ -530,7 +534,7 @@ void ofApp::update(){
                             int dn = 2 * (circleNum - 1);
                             float x = x1 + 2 * k * dx/dn;
                             float y = y1 + 2 * k * dy/dn;
-                            ofDrawCircle(x + 1.8 * (-1 + 3. * ofNoise(y/10)),y + 3. * (-1 + 3. * ofNoise(x/10)), d/(dn - 1));
+                            ofDrawCircle(x + 1.8 * (-1 + 3. * ofNoise(y/30)),y + 3. * (-1 + 3. * ofNoise(x/30)), d/(dn - 1));
                         }
                         float time = ofClamp(0.5 * ind, 1, 3) * ofGetElapsedTimef();
                         float ratio = (time - floor(time));
@@ -539,13 +543,13 @@ void ofApp::update(){
                             if(waterMode == 1 || waterMode > 1) ofSetColor(0, 100, 255);
                             float x = x1 + ratio * dx;
                             float y = y1 + ratio * dy;
-                            ofDrawCircle(x + 1.8 * (-1 + 3. * ofNoise(y/10)),y + 1.8 * (-1 + 3. * ofNoise(x/10)), dotSize);
+                            ofDrawCircle(x + 1.8 * (-1 + 3. * ofNoise(y/30)),y + 1.8 * (-1 + 3. * ofNoise(x/30)), dotSize);
                             float xb = x1 + (ratio-0.15) * dx;
                             float yb = y1 + (ratio-0.15) * dy;
                             float xa = x1 + (ratio+0.15) * dx;
                             float ya = y1 + (ratio+0.15) * dy;
-                            ofDrawCircle(xb + 1.5 * (-1 + 3. * ofNoise(yb/10)),yb + 1.5 * (-1 + 3. * ofNoise(xb/10)), dotSize - 0.5);
-                            ofDrawCircle(xa + 1.5 * (-1 + 3. * ofNoise(ya/10)),ya + 1.5 * (-1 + 3. * ofNoise(xa/10)), dotSize - 0.5);
+                            ofDrawCircle(xb + 1.5 * (-1 + 3. * ofNoise(yb/30)),yb + 1.5 * (-1 + 3. * ofNoise(xb/30)), dotSize - 0.5);
+                            ofDrawCircle(xa + 1.5 * (-1 + 3. * ofNoise(ya/30)),ya + 1.5 * (-1 + 3. * ofNoise(xa/30)), dotSize - 0.5);
                             ofPopStyle();
                         }
                         currentNode = visitedList[ind2X][ind2Y];
@@ -556,7 +560,7 @@ void ofApp::update(){
                 }
             }
         }
-    // TODO: this part is added as a quick fix to the tree traversal bug of my quick and dirty water drainage path finding algrithom. I will change the structre of the path finding tree and eventually this part will be removed
+        // TODO: this part is added as a quick fix to the tree traversal bug of my quick and dirty water drainage path finding algrithom. I will change the structre of the path finding tree and eventually this part will be removed
         for (int x = 0; x < 1; x ++) {
             for (int i = 0; i < gridNum; i +=temp) {
                 for (int j = 0; j < gridNum; j +=temp) {
@@ -585,21 +589,21 @@ void ofApp::update(){
                             float dx = x2 - x1;
                             float dy = y2 - y1;
                             float d = ofDist(x1, y1, x2, y2);
-
+                            
                             int circleNum = lineWidth * gridSize;
                             for(int k = 0; k < circleNum; k ++) {
                                 int dn = 2 * (circleNum - 1);
                                 float x = x1 + 2 * k * dx/dn;
                                 float y = y1 + 2 * k * dy/dn;
-                                ofDrawCircle(x + 1.8 * (-1 + cloudAmount * ofNoise(y/dn)),y + 1.8 * (-1 + cloudAmount * ofNoise(x/dn)), d/dn);
+                                ofDrawCircle(x + 1.8 * (-1 + cloudAmount * ofNoise(y/3 * dn)),y + 1.8 * (-1 + cloudAmount * ofNoise(x/3 * dn)), d/dn);
                             }
-
-    //                        if((travelStep + (int)randOffset[indOff]) % 8 == (int)time % 8) {
-    //                            ofPushStyle();
-    //                            ofDrawCircle(x1 + ratio * dx, y1 + ratio * dy, 2);
-    //                            ofPopStyle();
-    //                        }
-
+                            
+                            //                        if((travelStep + (int)randOffset[indOff]) % 8 == (int)time % 8) {
+                            //                            ofPushStyle();
+                            //                            ofDrawCircle(x1 + ratio * dx, y1 + ratio * dy, 2);
+                            //                            ofPopStyle();
+                            //                        }
+                            
                             currentNode = visitedList[ind2X][ind2Y];
                             visitedList[ind2X][ind2Y].x = 0;
                             ind1 = ind2;
@@ -609,49 +613,48 @@ void ofApp::update(){
                 }
             }
         }
-    ofPopStyle();
-    fbo_grad.end();
-
+        ofPopStyle();
+        fbo_grad.end();
     //---------------------------------- draw water drainage vectors based on 8n classification -----------------------------------
-//    if(ofGetFrameNum() % 180 == 0) {
-//    fbo_grad.begin();
-//    ofPushStyle();
-//    ofSetColor(0, 0, 0);
-//    ofDrawRectangle(0, 0, meshX * 10, meshY * 10);
-//    int temp = waterVectorDis;
-//    for (int i = 0; i < gridNum; i ++) {
-//        for (int j = 0; j < gridNum; j ++) {
-//            vectorList[i][j]->init();
-//        }
-//    }
-//
-//    for (int i = 0; i < gridNum; i ++) {
-//        for (int j = 0; j < gridNum; j ++) {
-//            vectorList[i][j]->findPath(i, j, mainMesh, vectorList, grad);
-//        }
-//    }
-//
-//    for (int i = 0; i < gridNum; i ++) {
-//        for (int j = 0; j < gridNum; j ++) {
-//            WaterDrainage* vec = vectorList[i][j];
-//            if(vec->parent == nullptr) { // is a root
-//                while(vec->child != nullptr && vec->visited) { // has not been visited and has child
-//                    vec->visited = false; // flip its visited bit
-//                    ofPushStyle();
-//                    ofSetColor(200,200,200);
-//                    ofSetLineWidth(6);
-//                    float offSet = meshX * 5;
-//                    ofDrawLine(offSet + vec->startPos.x * 10, offSet + vec->startPos.y * 10, offSet + vec->child->startPos.x * 10, offSet + vec->child->startPos.y * 10);
-//                    ofPopStyle();
-//                    vec = vec->child;
-//                }
-//            }
-//        }
-//    }
-//
-//        ofPopStyle();
-//        fbo_grad.end();
-//    }
+    //    if(ofGetFrameNum() % 180 == 0) {
+    //    fbo_grad.begin();
+    //    ofPushStyle();
+    //    ofSetColor(0, 0, 0);
+    //    ofDrawRectangle(0, 0, meshX * 10, meshY * 10);
+    //    int temp = waterVectorDis;
+    //    for (int i = 0; i < gridNum; i ++) {
+    //        for (int j = 0; j < gridNum; j ++) {
+    //            vectorList[i][j]->init();
+    //        }
+    //    }
+    //
+    //    for (int i = 0; i < gridNum; i ++) {
+    //        for (int j = 0; j < gridNum; j ++) {
+    //            vectorList[i][j]->findPath(i, j, mainMesh, vectorList, grad);
+    //        }
+    //    }
+    //
+    //    for (int i = 0; i < gridNum; i ++) {
+    //        for (int j = 0; j < gridNum; j ++) {
+    //            WaterDrainage* vec = vectorList[i][j];
+    //            if(vec->parent == nullptr) { // is a root
+    //                while(vec->child != nullptr && vec->visited) { // has not been visited and has child
+    //                    vec->visited = false; // flip its visited bit
+    //                    ofPushStyle();
+    //                    ofSetColor(200,200,200);
+    //                    ofSetLineWidth(6);
+    //                    float offSet = meshX * 5;
+    //                    ofDrawLine(offSet + vec->startPos.x * 10, offSet + vec->startPos.y * 10, offSet + vec->child->startPos.x * 10, offSet + vec->child->startPos.y * 10);
+    //                    ofPopStyle();
+    //                    vec = vec->child;
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //        ofPopStyle();
+    //        fbo_grad.end();
+    //    }
 }
 
 //--------------------------------------------------------------
@@ -704,7 +707,7 @@ void ofApp::draw(){
     ofEnableDepthTest();
     mainMesh.drawFaces();
     shader.end();
-//    renderVectorField(V, F, gradV, curV, windU, slop, 0); // for debugging the slop vector field
+    //    renderVectorField(V, F, gradV, curV, windU, slop, 0); // for debugging the slop vector field
     if(u_mode == 3){
         sunShader.begin();
         sun.draw();

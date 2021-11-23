@@ -10,7 +10,7 @@
 #include "Particle.h"
 #include "WaterDrainage.h"
 
-#define SIZE 50
+#define SIZE 80
 
 extern float u_mode, snowHeight, meshX, meshY, meshZ, cloudAmount, lineDarkness, specular, shadowRate, wAlpha, mAlpha, mBrightness, mSaturation;
 extern int season, waterMode;
@@ -104,7 +104,7 @@ public:
     int topViewY_ = 100;
     int smoothRound_ = 5;
     int smoothWeight_ = 4;
-    float cloud_ = 5;
+    float cloud_ = 0.1;
     float water_ = 0.5;
     float contourLineDarkness_ = 0.5;
     float shadow_ = 0.5;
