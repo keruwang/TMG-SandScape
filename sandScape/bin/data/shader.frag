@@ -180,8 +180,8 @@ void main() {
         vec4 water_tex = texture(waterTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
         color = water_tex.rgb;
         if(u_waterMode == 3 && water_tex.b > 0.5) color = white;
-//        vec4 particle_tex = texture(particleTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
-//        if(particle_tex.r > 0.8) color = particle_tex.rgb;
+        //        vec4 particle_tex = texture(particleTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
+        //        if(particle_tex.r > 0.8) color = particle_tex.rgb;
         gl_FragColor = vec4(color.rgb,1.);
         
     } else if(u_mode == 1.){ // geometry
@@ -195,83 +195,57 @@ void main() {
         color = mix(vec3(75.,220.,253.)/255., color, clamp(pow((vPos.z/u_height + 0.7),10.), 0.,1.));
         color = mix(vec3(75.,194.,253.)/255., color, clamp(pow((vPos.z/u_height + 0.85),10.), 0.,1.));
         color = mix(vec3(6.,182.,243.)/255., color, clamp(pow((vPos.z/u_height + 0.8),10.), 0.,1.));
-//        if(u_waterMode == 1){
-//            //            if(arrow(vPos.xy, vDir.xy) == 1.){
-//            //                color = vec3(0.0,0.0,0.);
-//            //                color += vec3(0.4,1.,1.0) * (1. - abs(sin(PI * (0.1 * u_time - floor(0.1 * u_time)) + 0.5 * PI * vPos.z/u_height)));
-//            //            }
-//            lightDir.xz = vec2(1,1);
-//            vec3 N = normalize(vNor);
-//            vec3 R = 2. * dot(lightDir, N) * N - lightDir;
-//            vec3 shadowColor = min(phong(lightDir, lightColor, N, 0.5 * color, 0.1 * color, u_specular),white);
-//            color = mix(color,shadowColor, u_shadow);
-//
-//            gl_FragColor = vec4(color,1.);
-//
-//        }else
-        {
-            vec4 water_tex = texture(waterTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
-            // contour line
-            float stiffness = 1. - abs(dot(normalize(vNor), vec3(0.,0.,1.)));
-            //        float stiffness = .9;
-            float strokeWeight = .3 * stiffness;
-            float unit = u_height / 15.;
+        //        if(u_waterMode == 1){
+        //            //            if(arrow(vPos.xy, vDir.xy) == 1.){
+        //            //                color = vec3(0.0,0.0,0.);
+        //            //                color += vec3(0.4,1.,1.0) * (1. - abs(sin(PI * (0.1 * u_time - floor(0.1 * u_time)) + 0.5 * PI * vPos.z/u_height)));
+        //            //            }
+        //            lightDir.xz = vec2(1,1);
+        //            vec3 N = normalize(vNor);
+        //            vec3 R = 2. * dot(lightDir, N) * N - lightDir;
+        //            vec3 shadowColor = min(phong(lightDir, lightColor, N, 0.5 * color, 0.1 * color, u_specular),white);
+        //            color = mix(color,shadowColor, u_shadow);
+        //
+        //            gl_FragColor = vec4(color,1.);
+        //
+        //        }else
+        vec4 water_tex = texture(waterTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
+        // contour line
+        float stiffness = 1. - abs(dot(normalize(vNor), vec3(0.,0.,1.)));
+        //        float stiffness = .9;
+        float strokeWeight = .3 * stiffness;
+        float unit = u_height / 15.;
+      
+        if(u_waterMode == 2 && length(water_tex.rgb) > 0.8  && water_tex.b <= water_tex.r) {
+            water_tex.rgb = color;
+        } else if(u_waterMode == 3 && length(water_tex.rgb) > 0.8){
+            if(water_tex.b > water_tex.r) water_tex.rgb = color;
+        } else if(u_waterMode == 5 && length(water_tex.rgb) > 0.8){
+            water_tex.rgb = white;
+        }
+        
+        vec3 avg = vec3((color.r + color.g + color.b)/3.);
+        float normCloud = u_cloud/5.;
+        //            float sc = u_mSaturation;
+        float sc = max(normCloud,0.3);
+        color = vec3(avg) + sc * (color - avg);
+        //            color *= u_mBrightness;
+        color *= max(normCloud,0.3);
+        gl_FragColor = vec4(color,u_mAlpha);
+        if(vPos.x > - u_width/2 + 1. && vPos.x < u_width/2 - 2. && vPos.y > -u_length/2 + 1. && vPos.y < u_length/2 - 2.) {
             for (int i = 1; i < 15; i ++) {
                 float scale = 1.;
-                //                if(i % 3 == 0) scale = 2.;
                 if(vPos.z > i * unit - scale * strokeWeight && vPos.z < i * unit + scale * strokeWeight) {
-                    //                color = black;
-                    color *= u_lineDarkness;
-//                    color = u_lineDarkness * white;
-                }
-            }
-//            if(u_waterMode > 1){
-                if(u_waterMode == 2 && length(water_tex.rgb) > 0.8  && water_tex.b <= water_tex.r) {
-                    water_tex.rgb = color;
-                } else if(u_waterMode == 3 && length(water_tex.rgb) > 0.8){
-                    if(water_tex.b > water_tex.r) water_tex.rgb = color;
-                } else if(u_waterMode == 5 && length(water_tex.rgb) > 0.8){
-                    water_tex.rgb = white;
-                }
-//            }
-
-            vec3 avg = vec3((color.r + color.g + color.b)/3.);
-            float normCloud = u_cloud/5.;
-//            float sc = u_mSaturation;
-            float sc = max(normCloud,0.3);
-            color = vec3(avg) + sc * (color - avg);
-//            color *= u_mBrightness;
-            color *= max(normCloud,0.3);
-            gl_FragColor = vec4(color,u_mAlpha);
-            for (int i = 1; i < 15; i ++) {
-                float scale = 1.;
-                //                if(i % 3 == 0) scale = 2.;
-                if(vPos.z > i * unit - scale * strokeWeight && vPos.z < i * unit + scale * strokeWeight) {
-                    //                color = black;
-//                    color *= u_lineDarkness;
-//                    color = white;
                     gl_FragColor = vec4(1.5 * white * clamp(normCloud,0.3,1.),1.);
                 }
             }
-           
             if(length(water_tex.rgb) > 0.8 && normCloud < 0.5){
-//                water_tex.rgb *= 1.5;
-//                if(normCloud < 0.3) {
-//                    water_tex.rgb += 1.2 * water_tex.rgb * (1. - abs(sin(PI * (0.6 * u_time - floor(0.6 * u_time)) + 2. * PI * vPos.z/u_height)));
-//                }
-//                color = mix(water_tex.rgb,color, u_wAlpha);
                 color = mix(water_tex.rgb,color,2. * normCloud);
                 gl_FragColor = vec4(color,1.);
-                
             }
-
-            
-   
-
-//            vec4 particle_tex = texture(particleTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
-//            if(particle_tex.r > 0.8) color = .75 * vec3(particle_tex.r * 1.3,particle_tex.g * 1.1,particle_tex.b * 0.6);;
-                    
         }
+        
+       
     } else if(u_mode == 2.){ // season
         vec2 coord = gl_FragCoord.xy;
         

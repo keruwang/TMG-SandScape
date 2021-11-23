@@ -343,6 +343,29 @@ void ofApp::update(){
             }
         }
     }
+    // close the boundary of the landscape
+    for (int x = 1; x < meshX - 1; x ++) {
+        int index1 = x * meshX;
+        int index2 = x * meshX + meshY - 1;
+        ofVec3f ver1 = mainMesh.getVertex(index1);
+        ofVec3f ver2 = mainMesh.getVertex(index2);
+        ver1.z = 0;
+        ver2.z = 0;
+        mainMesh.setVertex(index1, ver1);
+        mainMesh.setVertex(index2, ver2);
+    }
+    
+    for (int y = 1; y < meshY - 1; y ++) {
+        int index1 = y;
+        int index2 = (meshX - 1) * meshX + y;
+        ofVec3f ver1 = mainMesh.getVertex(index1);
+        ofVec3f ver2 = mainMesh.getVertex(index2);
+        ver1.z = 0;
+        ver2.z = 0;
+        mainMesh.setVertex(index1, ver1);
+        mainMesh.setVertex(index2, ver2);
+    }
+
     // update values from GUI
 //    cloudAmount = cloud;
     float cloudChangeSpeed = cloud;
