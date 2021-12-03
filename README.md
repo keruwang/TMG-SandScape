@@ -10,4 +10,4 @@ Addons include *ofxBullet*, *ofxEigen*, *ofxGui*, *ofxKinect*, *ofxLibigl*, *ofx
 Press *2* to see the transition between water drainage and elevation display.
 
 ## TODO
-Improve the algrithom of finding water draniage vectors: extend from doing 8 classifications on vector direction to 8n.
+Improve the algrithom of finding water drainage vectors: extend from doing 8 classifications on vector direction to 8n.
