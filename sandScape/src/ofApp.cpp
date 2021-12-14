@@ -215,16 +215,18 @@ void ofApp::setup(){
             vectorList[i][j] = new WaterDrainage();
         }
     }
+    cloudVideo.load("cloud.mp4");
+    cloudVideo.setLoopState(OF_LOOP_NORMAL);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
     // cout << ofGetFrameRate() << endl;
     
-    if ((updateMesh || realTime)) { // uncomment this if wish to use the Kinect data
-        //    if (false) { // uncomment this when testing without Kinect data
+//    if ((updateMesh || realTime)) { // uncomment this if wish to use the Kinect data
+            if (false) { // uncomment this when testing without Kinect data
         kinect.update();
-        
+
         if (kinect.isFrameNew()) {
             grayImage.setFromPixels(kinect.getDepthPixels());
             // crop out the valid part
@@ -243,14 +245,14 @@ void ofApp::update(){
             }
             croppedImg.setFromPixels(cropped,cropped_w, cropped_h);
             grayImageSmall.scaleIntoMe(croppedImg);
-            
+
             // add effects to smooth signal and reduce noise
             grayImageSmall.blur(3);
             unsigned char * pix = grayImageSmall.getPixels().getData();
-            
+
             // draw image
             int diffThreshold = nearThreshold - farThreshold;
-            
+
             // iterate through pixel data
             for (int w = 0; w < grayImageSmall.getWidth(); w++) {
                 for (int h = 0; h < grayImageSmall.getHeight(); h++) {
@@ -261,15 +263,15 @@ void ofApp::update(){
                     prevPix[index] = prevDepth* .9 + currentDepth * .1;
                     double  depth = prevPix[index];
                     //                        double depth = currentDepth;
-                    
+
                     bool isInDepthBoundary = currentDepth < nearThreshold && currentDepth > farThreshold;
-                    
+
                     // set Timeout zone
                     //                        int lowerBoundary = 210;
                     //                        int upperBoundary = 400;
                     //
                     //                        bool isInActiveZone = currentDepth < upperBoundary && currentDepth > lowerBoundary;
-                    
+
                     //                if (isInBoundary && isInActiveZone) {
                     //                    isTimeout = false;
                     //                    startTimeout = ofGetElapsedTimef();
@@ -384,7 +386,7 @@ void ofApp::update(){
     // update values from GUI
     //    cloudAmount = cloud;
     float cloudChangeSpeed = cloud;
-    cloudAmount = ofClamp(2.5 + 5 * sin(cloud * ofGetElapsedTimef()),0,5);
+    cloudAmount = ofClamp(2.5 + 5 * sin(cloud * ofGetElapsedTimef()),0,5); // period = 2 * PI / cloud
     lineDarkness = contourLineDarkness;
     specular = shadowContrast;
     shadowRate = shadowRatio;
@@ -692,6 +694,11 @@ void ofApp::update(){
     //        ofPopStyle();
     //        fbo_grad.end();
     //    }
+    float duration = cloudVideo.getDuration();
+    float period = 2 * PI / cloud;
+    float speed = duration / period;
+    cloudVideo.setSpeed(speed);
+    cloudVideo.update();
 }
 
 //--------------------------------------------------------------
@@ -738,7 +745,7 @@ void ofApp::draw(){
     shader.end();
     fbo_topView.end();
     fbo_topView.getTexture(0).draw(topViewX, topViewY, scale * 10 * meshX,scale * 10 * meshY);
-    
+
     // render side view
     fbo_sideView.begin();
     ofPushStyle();
@@ -755,11 +762,11 @@ void ofApp::draw(){
         sunShader.end();
     }
     ofDisableDepthTest();
-    if(u_mode == 1) {
-        cloudShader.begin();
-        ofDrawRectangle(-30, -30, 40, 60, 60);
-        cloudShader.end();
-    }
+//    if(u_mode == 1) {
+//        cloudShader.begin();
+//        ofDrawRectangle(-30, -30, 40, 60, 60);
+//        cloudShader.end();
+//    }
     mainCam.end();
     ofPopStyle();
     fbo_sideView.end();
@@ -768,6 +775,11 @@ void ofApp::draw(){
     if(!bHide){
         gui.draw();
     }
+    
+    if(u_mode == 1) {
+        cloudVideo.draw(400, 50, 1000, 300);
+    }
+    
 }
 
 //--------------------------------------------------------------

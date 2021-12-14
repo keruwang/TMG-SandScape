@@ -166,4 +166,6 @@ public:
     ofVec2f down;
     ofVec2f left;
     ofVec2f right;
+    
+    ofVideoPlayer cloudVideo;
 };
