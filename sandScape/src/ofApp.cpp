@@ -8,7 +8,7 @@ int waterMode = 0;
 float snowHeight = 0;
 float meshX = SIZE;
 float meshY = SIZE;
-float meshZ = SIZE/3;
+float meshZ = SIZE/5;
 float cloudAmount = 5;
 float specular = 1.;
 float shadowRate = 1.;
@@ -173,6 +173,11 @@ void ofApp::setup(){
     gui.add(grid.setup("gridSize", gridSize_, 1, 4));
     gui.add(dotSize.setup("dotSize", dotSize_, 1, 5));
     gui.add(lineWidth.setup("lineWidth", lineWidth_, 4, 14));
+    gui.add(rotX.setup("rotX", rotX_, -180, 180));
+    gui.add(posX.setup("posX", posX_, -30, 30));
+    gui.add(posY.setup("posY", posY_, -30, 30));
+    gui.add(posZ.setup("posZ", posZ_, -30, 30));
+
     
     ofSetBackgroundColor(0, 0, 0);
     
@@ -222,16 +227,15 @@ void ofApp::setup(){
 //--------------------------------------------------------------
 void ofApp::update(){
     // cout << ofGetFrameRate() << endl;
-    
+    if(kinect.isConnected()) {
 //    if ((updateMesh || realTime)) { // uncomment this if wish to use the Kinect data
-            if (false) { // uncomment this when testing without Kinect data
+//            if (false) { // uncomment this when testing without Kinect data
         kinect.update();
 
         if (kinect.isFrameNew()) {
             grayImage.setFromPixels(kinect.getDepthPixels());
             // crop out the valid part
-            unsigned char* pre_pix = grayImage.getPixels().getData();
-            unsigned char* cropped;
+            pre_pix = grayImage.getPixels().getData();
             cropped_w = abs(xRightBoundary - xLeftBoundary);
             cropped_h = abs(yBottomBoundary - yTopBoundary);
             cropped = new unsigned char[cropped_w * cropped_h];
@@ -245,10 +249,10 @@ void ofApp::update(){
             }
             croppedImg.setFromPixels(cropped,cropped_w, cropped_h);
             grayImageSmall.scaleIntoMe(croppedImg);
-
+            free(cropped);
             // add effects to smooth signal and reduce noise
             grayImageSmall.blur(3);
-            unsigned char * pix = grayImageSmall.getPixels().getData();
+            pix = grayImageSmall.getPixels().getData();
 
             // draw image
             int diffThreshold = nearThreshold - farThreshold;
@@ -260,11 +264,11 @@ void ofApp::update(){
                     int index = h * grayImageSmall.getWidth() + w;
                     double currentDepth = pix[index];
                     double prevDepth = prevPix[index];
-                    prevPix[index] = prevDepth* .9 + currentDepth * .1;
+                    prevPix[index] = prevDepth * .9 + currentDepth * .1;
                     double  depth = prevPix[index];
                     //                        double depth = currentDepth;
 
-                    bool isInDepthBoundary = currentDepth < nearThreshold && currentDepth > farThreshold;
+                    bool isInDepthBoundary = (currentDepth < nearThreshold) && (currentDepth > farThreshold);
 
                     // set Timeout zone
                     //                        int lowerBoundary = 210;
@@ -301,6 +305,7 @@ void ofApp::update(){
                         
                         mainMesh.setVertex( h * grayImageSmall.width + grayImageSmall.getWidth() - w , tmpVec);
                     }
+                    
                 }
             }
         }
@@ -329,16 +334,16 @@ void ofApp::update(){
             }
         }
     } else {
-        // distort the z value of each point in the mesh with perlinNoise
-        int i = 0;
-        for (int y = 0; y < meshY; y ++){
-            for (int x = 0; x < meshX; x ++){
-                ofVec3f newPosition = mainMesh.getVertex(i);
-                newPosition.z = ofNoise(ofMap(x + ofGetElapsedTimef(), 0, meshX, 0, perlinRange),  ofMap(y + ofGetElapsedTimef(), 0, meshY, 0, perlinRange) ) * perlinHeight;
-                mainMesh.setVertex(i, newPosition);
-                i ++;
-            }
-        }
+//        // distort the z value of each point in the mesh with perlinNoise
+//        int i = 0;
+//        for (int y = 0; y < meshY; y ++){
+//            for (int x = 0; x < meshX; x ++){
+//                ofVec3f newPosition = mainMesh.getVertex(i);
+//                newPosition.z = ofNoise(ofMap(x + ofGetElapsedTimef(), 0, meshX, 0, perlinRange),  ofMap(y + ofGetElapsedTimef(), 0, meshY, 0, perlinRange) ) * perlinHeight;
+//                mainMesh.setVertex(i, newPosition);
+//                i ++;
+//            }
+//        }
     }
     // update the reconstructed mesh
     updateMeshInfo(V, F, N, normals);
@@ -726,6 +731,7 @@ void ofApp::draw(){
     }
     ofPopStyle();
     fbo_particle.end();
+    
     // render top view
     fbo_topView.begin();
     ofPushStyle();
@@ -733,7 +739,7 @@ void ofApp::draw(){
     ofDrawRectangle(0, 0, kinect.width, kinect.height);
     ofPopStyle();
     ofTranslate(10*meshX/2, 10*meshY/2);
-    ofScale(-10,10,1);
+    ofScale(10,-10,1);
     int normalLoc = shader.getAttributeLocation("normal");
     mainMesh.getVbo().setAttributeData(normalLoc, normals, 3, 3 * mainMesh.getNumVertices(), GL_STATIC_DRAW);
     int dirLoc = shader.getAttributeLocation("direction");
@@ -749,10 +755,14 @@ void ofApp::draw(){
     // render side view
     fbo_sideView.begin();
     ofPushStyle();
+    
     ofClear(0,0,0,0);
     mainCam.begin();
     shader.begin();
     ofEnableDepthTest();
+    ofVec3f trans(posX,posY,posZ);
+    ofTranslate(trans);
+    ofRotateZDeg(rotX);
     mainMesh.drawFaces();
     shader.end();
     //    renderVectorField(V, F, gradV, curV, windU, slop, 0); // for debugging the slop vector field
@@ -770,15 +780,18 @@ void ofApp::draw(){
     mainCam.end();
     ofPopStyle();
     fbo_sideView.end();
-    fbo_sideView.getTexture(0).draw(400, 100, 1000, 1000);
+    if(u_mode == 1) {
+        cloudVideo.draw(0, 50, 1680, 300);
+    }
+    fbo_sideView.getTexture(0).draw(0, 100, 1680, 1300);
     
     if(!bHide){
         gui.draw();
     }
     
-    if(u_mode == 1) {
-        cloudVideo.draw(400, 50, 1000, 300);
-    }
+//    if(u_mode == 1) {
+//        cloudVideo.draw(400, 50, 1000, 300);
+//    }
     
 }
 
@@ -843,8 +856,8 @@ void ofApp::updateMeshInfo(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Matrix
         }
     }
     //    std::cout<<"update mesh info!!\n";
-    //    std::cout<< "vertcies:\n";
-    //    std::cout<<vertcies;
+    //    std::cout<< "vertices:\n";
+    //    std::cout<<vertices;
     //    std::cout<< "\n";
     //    std::cout<< "faces:\n";
     //    std::cout<<faces;

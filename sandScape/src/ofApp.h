@@ -117,6 +117,10 @@ public:
     int gridSize_ = 2;
     float dotSize_ = 2.5;
     int lineWidth_ = 10;
+    float rotX_ = 45;
+    float posX_ = 0;
+    float posY_ = 0;
+    float posZ_ = 0;
     // setting the screen black after <timeout> seconds
     float timeout = 60; //seconds
     int startTimeout; //seconds
@@ -150,6 +154,10 @@ public:
     ofxIntSlider grid;
     ofxFloatSlider dotSize;
     ofxIntSlider lineWidth;
+    ofxFloatSlider rotX;
+    ofxFloatSlider posX;
+    ofxFloatSlider posY;
+    ofxFloatSlider posZ;
     
     ofxCvGrayscaleImage croppedImg;
     int cropped_w;
@@ -168,4 +176,8 @@ public:
     ofVec2f right;
     
     ofVideoPlayer cloudVideo;
+    
+    unsigned char* pre_pix;
+    unsigned char* cropped;
+    unsigned char* pix;
 };
