@@ -174,14 +174,15 @@ void main() {
     float alpha = 1.;
     
     if(u_mode == 0.) { // posotion correction
-        vec3 color = vec3(vPos.z/u_height);
-        if(vPos.z < 0.) color = vec3(.6,0.,0.);
-        else if(vPos.z < 0.05) color = vec3(0.,0.,.6);
-        vec4 water_tex = texture(waterTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
-        color = water_tex.rgb;
-        if(u_waterMode == 3 && water_tex.b > 0.5) color = white;
-        //        vec4 particle_tex = texture(particleTexture, vec2(u_texcoord.x, u_texcoord.y) * 10.);
-        //        if(particle_tex.r > 0.8) color = particle_tex.rgb;
+        vec3 color = vec3(253., 128., 46.)/255.;
+        color = mix(vec3(253.,198.,104.)/255., color, clamp(pow((vPos.z/u_height + 0.1),10.), 0.,1.));
+        color = mix(vec3(211.,231.,125.)/255., color, clamp(pow((vPos.z/u_height + 0.2),10.), 0.,1.));
+        color = mix(vec3(168.,233.,106.)/255., color, clamp(pow((vPos.z/u_height + 0.4),10.), 0.,1.));
+        color = mix(vec3(171.,233.,235.)/255., color, clamp(pow((vPos.z/u_height + 0.5),10.), 0.,1.));
+        color = mix(vec3(55.,231.,238.)/255., color, clamp(pow((vPos.z/u_height + 0.6),10.), 0.,1.));
+        color = mix(vec3(75.,220.,253.)/255., color, clamp(pow((vPos.z/u_height + 0.7),10.), 0.,1.));
+        color = mix(vec3(75.,194.,253.)/255., color, clamp(pow((vPos.z/u_height + 0.85),10.), 0.,1.));
+        color = mix(vec3(6.,182.,243.)/255., color, clamp(pow((vPos.z/u_height + 0.8),10.), 0.,1.));
         gl_FragColor = vec4(color.rgb,1.);
         
     } else if(u_mode == 1.){ // geometry

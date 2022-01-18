@@ -62,6 +62,7 @@ void ofApp::setup(){
     shader.load("shader");
     sunShader.load("sunShader");
     cloudShader.load("cloudShader");
+    rainShader.load("rainShader");
     
     // set the initial values to use for our perlinNoise
     perlinRange = 2;
@@ -161,7 +162,7 @@ void ofApp::setup(){
     
     gui.add(smoothRound.setup("smoothRound", smoothRound_, 0, 25));
     gui.add(smoothWeight.setup("smoothWeight", smoothWeight_, 0, 10));
-    gui.add(cloud.setup("cloud", cloud_, 0., 0.3));
+    gui.add(cloud.setup("cloud", cloud_, 0., 5));
     gui.add(water.setup("water", water_, 0, 1));
     gui.add(contourLineDarkness.setup("contourLineDarkness", contourLineDarkness_, 0, 1));
     gui.add(shadowContrast.setup("shadowContrast", specular_, 0, 100));
@@ -201,8 +202,23 @@ void ofApp::setup(){
     fbo_grad.begin();
     ofClear(0,0,0,0);
     fbo_grad.end();
+    fbo_rainBack.allocate(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    fbo_rainBack.begin();
+    ofClear(0,0,0,0);
+    fbo_rainBack.end();
+    fbo_rainMid.allocate(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    fbo_rainMid.begin();
+    ofClear(0,0,0,0);
+    fbo_rainMid.end();
+    fbo_rainFront.allocate(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    fbo_rainFront.begin();
+    ofClear(0,0,0,0);
+    fbo_rainFront.end();
     
     sun.setRadius(5);
+    rainPlane.set(DISPLAY_WIDTH,DISPLAY_HEIGHT);
+    rainPlane.setPosition(DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2,0);
+    rainPlane.setResolution(2,2);
     // set up for the 3D rain particle system
     //    world.setup();
     //    world.setCamera(&mainCam);
@@ -389,7 +405,7 @@ void ofApp::update(){
     }
     
     // update values from GUI
-    //    cloudAmount = cloud;
+//        cloudAmount = cloud;
     float cloudChangeSpeed = cloud;
     cloudAmount = ofClamp(2.5 + 5 * sin(cloud * ofGetElapsedTimef()),0,5); // period = 2 * PI / cloud
     lineDarkness = contourLineDarkness;
@@ -604,59 +620,6 @@ void ofApp::update(){
             }
         }
     }
-    // TODO: this part is added as a quick fix to the tree traversal bug of my quick and dirty water drainage path finding algrithom. I will change the structre of the path finding tree and eventually this part will be removed
-    for (int x = 0; x < 1; x ++) {
-        for (int i = 0; i < gridNum; i +=temp) {
-            for (int j = 0; j < gridNum; j +=temp) {
-                int indOff = i * meshX * gridSize + j * gridSize;
-                int ind2p = visitedList[i][j].z;
-                int ind2Xp = floor(ind2p * gridSize / meshX);
-                int ind2Yp = ind2p - meshX * ind2Xp;
-                if(visitedList[i][j].x == 1 && visitedList[ind2Xp][ind2Yp].x != 1) {  // it is the root: parent = -1
-                    visitedList[i][j].x = 0;
-                    ofVec3f currentNode = visitedList[i][j];
-                    int travelStep = 0;
-                    int ind1 = i * meshX * gridSize + j * gridSize;
-                    int ind2;
-                    while(currentNode.z != -1) { // it still has child
-                        ind2 = currentNode.z;
-                        int ind2X = floor(ind2 * gridSize / meshX);
-                        int ind2Y = ind2 - meshX * ind2X;
-                        float x1 = 10 * (meshX/2) + mainMesh.getVertex(ind1).x * 10;
-                        float y1 = 10 * (meshX/2) + mainMesh.getVertex(ind1).y * 10;
-                        float x2 = 10 * (meshY/2) + mainMesh.getVertex(ind2).x * 10;
-                        float y2 = 10 * (meshY/2) + mainMesh.getVertex(ind2).y * 10;
-                        float stiff =  mainMesh.getVertex(ind1).z -  mainMesh.getVertex(ind2).z;
-                        int ind = ofClamp((int)(stiff * 5 / (gridSize * gridSize)) ,0, 10);
-                        if(waterMode < 2) ofSetColor(waterColor[ind][0],waterColor[ind][1],waterColor[ind][2]);
-                        else ofSetColor(255,255,255);
-                        float dx = x2 - x1;
-                        float dy = y2 - y1;
-                        float d = ofDist(x1, y1, x2, y2);
-                        
-                        int circleNum = lineWidth * gridSize;
-                        for(int k = 0; k < circleNum; k ++) {
-                            int dn = 2 * (circleNum - 1);
-                            float x = x1 + 2 * k * dx/dn;
-                            float y = y1 + 2 * k * dy/dn;
-                            ofDrawCircle(x + 1.8 * (-1 + cloudAmount * ofNoise(y/3 * dn)),y + 1.8 * (-1 + cloudAmount * ofNoise(x/3 * dn)), d/dn);
-                        }
-                        
-                        //                        if((travelStep + (int)randOffset[indOff]) % 8 == (int)time % 8) {
-                        //                            ofPushStyle();
-                        //                            ofDrawCircle(x1 + ratio * dx, y1 + ratio * dy, 2);
-                        //                            ofPopStyle();
-                        //                        }
-                        
-                        currentNode = visitedList[ind2X][ind2Y];
-                        visitedList[ind2X][ind2Y].x = 0;
-                        ind1 = ind2;
-                        travelStep ++;
-                    }
-                }
-            }
-        }
-    }
     ofPopStyle();
     fbo_grad.end();
     //---------------------------------- draw water drainage vectors based on 8n classification -----------------------------------
@@ -699,11 +662,34 @@ void ofApp::update(){
     //        ofPopStyle();
     //        fbo_grad.end();
     //    }
+    
+    //---------------------------------------------------------- rain ----------------------------------------------------------
+    float rainAmount = ofClamp(2.5 + 7 * sin(cloud * ofGetElapsedTimef()),0,5);
+    if(rainAmount < 3) {
+        for(int i = 0; i < ofRandom((5 - rainAmount) * 8); i ++) {
+            if(rain.size() < (5 - rainAmount) * 100) {
+                Particle newParticle;
+                float rainRange = (5 - rainAmount) * DISPLAY_WIDTH/ 6;
+                float rand = DISPLAY_WIDTH/2 + ofRandom(-rainRange/2, rainRange/2);
+                ofVec3f pos(rand, DISPLAY_HEIGHT - ofRandom(100) - DISPLAY_HEIGHT/8, 0);
+                ofVec3f color(200,200,255);
+                newParticle.setup(pos, color);
+                rain.push_back(newParticle);
+            }
+        }
+    }
+    
     float duration = cloudVideo.getDuration();
     float period = 2 * PI / cloud;
     float speed = duration / period;
     cloudVideo.setSpeed(speed);
     cloudVideo.update();
+    if(!resetVideo && cloudAmount == 5) {
+        cloudVideo.setFrame(0);
+//        cout<<"reset!!!!!"<<endl;
+        resetVideo = true;
+    }
+    if(cloudAmount != 5) resetVideo = false;
 }
 
 //--------------------------------------------------------------
@@ -780,11 +766,99 @@ void ofApp::draw(){
     mainCam.end();
     ofPopStyle();
     fbo_sideView.end();
+//    fbo_sideView.getTexture(0).draw(0, 100, 1680, 1300);
+    
+    fbo_rainBack.begin();
+    for(int j = 0; j < 5; j ++) {
+        for(int i = 0; i < floor(rain.size()/3); i ++) {
+//            rain[i].updateDuration(1);
+            if(rain[i].pos.y < DISPLAY_HEIGHT/2 ) {
+                rain.erase(rain.begin() + i);
+            }
+            ofVec3f g(-0.32,-0.8,0);
+            rain[i].move(g);
+        }
+        ofPushStyle();
+        ofSetColor(255, 255, 255, 10);
+        ofDrawRectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        for( int i = 0; i < floor(rain.size()/3); i ++){
+            rain[i].draw(0.6);
+        }
+        ofPopStyle();
+    }
+    fbo_rainBack.end();
+    
+    fbo_rainMid.begin();
+    for(int j = 0; j < 10; j ++) {
+        for(int i = floor(rain.size()/3); i < floor(2 * rain.size()/3); i ++) {
+//            rain[i].updateDuration(1);
+            if(rain[i].pos.y < DISPLAY_HEIGHT/4 + i) {
+                rain.erase(rain.begin() + i);
+            }
+            ofVec3f g(-0.4,-1,0);
+            rain[i].move(g);
+        }
+        ofPushStyle();
+        ofSetColor(255, 255, 255, 10);
+        ofDrawRectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        for( int i = floor(rain.size()/3); i < floor(2 * rain.size()/3); i ++){
+            rain[i].draw(1.2);
+        }
+        ofPopStyle();
+    }
+    fbo_rainMid.end();
+    
+    fbo_rainFront.begin();
+    for(int j = 0; j < 15; j ++) {
+        for(int i = floor(2 * rain.size()/3); i < rain.size(); i ++) {
+//            rain[i].updateDuration(1);
+            if(rain[i].pos.y < 0) {
+                rain.erase(rain.begin() + i);
+            }
+            ofVec3f g(-0.6,-1.5,0);
+            rain[i].move(g);
+        }
+        ofPushStyle();
+        ofSetColor(255, 255, 255, 10);
+        ofDrawRectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        for( int i = floor(2 * rain.size()/3); i < rain.size(); i ++){
+            rain[i].draw(1.8);
+        }
+        ofPopStyle();
+    }
+    fbo_rainFront.end();
+    
+    rainShader.begin();
+    rainPlane.mapTexCoordsFromTexture(fbo_rainBack.getTexture(0));
+    rainShader.setUniformTexture("rainTexture", fbo_rainBack.getTexture(0),1);
+    rainShader.setUniformTexture("meshTexture",fbo_sideView.getTexture(0),2);
+//    ofDrawRectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    rainPlane.draw();
+    rainShader.end();
+    
     if(u_mode == 1) {
-        cloudVideo.draw(0, 50, 1680, 300);
+        cloudVideo.draw(-DISPLAY_WIDTH * 0.1, -50, DISPLAY_WIDTH * 1.2, DISPLAY_HEIGHT/3);
     }
     fbo_sideView.getTexture(0).draw(0, 100, 1680, 1300);
     
+    rainShader.begin();
+    rainPlane.mapTexCoordsFromTexture(fbo_rainFront.getTexture(0));
+    rainShader.setUniformTexture("rainTexture", fbo_rainMid.getTexture(0),1);
+    rainShader.setUniformTexture("meshTexture",fbo_sideView.getTexture(0),2);
+//    ofDrawRectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    rainPlane.draw();
+    rainShader.end();
+    
+    rainShader.begin();
+    rainPlane.mapTexCoordsFromTexture(fbo_rainFront.getTexture(0));
+    rainShader.setUniformTexture("rainTexture", fbo_rainFront.getTexture(0),1);
+    rainShader.setUniformTexture("meshTexture",fbo_sideView.getTexture(0),2);
+//    ofDrawRectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    rainPlane.draw();
+    rainShader.end();
+    
+    
+
     if(!bHide){
         gui.draw();
     }

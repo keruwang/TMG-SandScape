@@ -43,6 +43,7 @@ public:
     ofxShader shader;
     ofxShader sunShader;
     ofxShader cloudShader;
+    ofxShader rainShader;
     ofVboMesh mainMesh;
 
     ofEasyCam mainCam;
@@ -78,6 +79,7 @@ public:
     Eigen::MatrixXd BC;
     vector <Particle> particles;
     vector <Particle> flowers;
+    vector <Particle> rain;
     ofVec3f gravity;
     ofVec3f wind;
     ofVec3f* windField;
@@ -86,6 +88,9 @@ public:
     ofFbo fbo_topView;
     ofFbo fbo_sideView;
     ofFbo fbo_grad;
+    ofFbo fbo_rainBack;
+    ofFbo fbo_rainMid;
+    ofFbo fbo_rainFront;
     
     // For Kinect
     ofxKinect kinect;
@@ -169,6 +174,7 @@ public:
     bool bHide;
     
     ofSpherePrimitive sun;
+    ofPlanePrimitive rainPlane;
     
     ofVec2f up;
     ofVec2f down;
@@ -176,6 +182,7 @@ public:
     ofVec2f right;
     
     ofVideoPlayer cloudVideo;
+    bool resetVideo = false;
     
     unsigned char* pre_pix;
     unsigned char* cropped;
