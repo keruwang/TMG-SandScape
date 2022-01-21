@@ -5,6 +5,8 @@
 //  Created by Keru Wang on 12/11/2021.
 //
 
+// !!!!!!!CURRENTLY THIS VERSION OF WATERDRAINAGE CALCULATION IS NOT USED AND IS BUGGY!!!!!!!!
+
 #pragma once
 
 #include "ofMain.h"
