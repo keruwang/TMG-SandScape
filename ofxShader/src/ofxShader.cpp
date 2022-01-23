@@ -45,33 +45,8 @@ ofxShader::ofxShader() {
         _shader->setUniform1f("u_cloud", cloudAmount);
     });
     
-    m_uniformsFunctions["u_lineDarkness"] = UniformFunction( [](ofShader* _shader) {
-        _shader->setUniform1f("u_lineDarkness", lineDarkness);
-    });
-    
-    m_uniformsFunctions["u_mAlpha"] = UniformFunction( [](ofShader* _shader) {
-        _shader->setUniform1f("u_mAlpha", mAlpha);
-    });
-
-    m_uniformsFunctions["u_wAlpha"] = UniformFunction( [](ofShader* _shader) {
-        _shader->setUniform1f("u_wAlpha", wAlpha);
-    });
-
-    m_uniformsFunctions["u_mBrightness"] = UniformFunction( [](ofShader* _shader) {
-        _shader->setUniform1f("u_mBrightness", mBrightness);
-    });
-
-    m_uniformsFunctions["u_mSaturation"] = UniformFunction( [](ofShader* _shader) {
-        _shader->setUniform1f("u_mSaturation", mSaturation);
-    });
-
-    
     m_uniformsFunctions["u_specular"] = UniformFunction( [](ofShader* _shader) {
         _shader->setUniform1f("u_specular", specular);
-    });
-
-    m_uniformsFunctions["u_shadow"] = UniformFunction( [](ofShader* _shader) {
-        _shader->setUniform1f("u_shadow", shadowRate);
     });
 
 
