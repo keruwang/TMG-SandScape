@@ -20,7 +20,7 @@ void ofApp::setup(){
     left.set(-1,0);
     right.set(1,0);
     // window display setup
-    ofSetWindowShape(5000, 1000);
+    ofSetWindowShape(5000, DISPLAY_HEIGHT);
     ofSetWindowPosition(0, 0);
     //    ofSetLogLevel(OF_LOG_VERBOSE);
     
