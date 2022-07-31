@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<group>
+    <nearThreshold>246</nearThreshold>
+    <farThreshold>240</farThreshold>
+    <xLeftBoundary>204</xLeftBoundary>
+    <xRightBoundary>400</xRightBoundary>
+    <yTopBoundary>88</yTopBoundary>
+    <yBottomBoundary>254</yBottomBoundary>
+    <blur>10</blur>
+    <scale>1</scale>
+    <topViewX>1000</topViewX>
+    <topViewY>100</topViewY>
+    <smoothRound>7</smoothRound>
+    <smoothWeight>5</smoothWeight>
+    <cloud>2.435</cloud>
+</group>
