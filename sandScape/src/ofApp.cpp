@@ -18,17 +18,17 @@ float wAlpha = 0.;
 float mBrightness = 1.;
 float mSaturation = 1.;
 
-//--------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 void ofApp::setup(){
-    // initsialize the standard vectors
+    // initialize the standard vectors
     up.set(0,-1);
     down.set(0,1);
     left.set(-1,0);
     right.set(1,0);
+    
     // window display setup
     ofSetWindowShape(5000, 1000);
     ofSetWindowPosition(-1, -1);
-    //    ofSetLogLevel(OF_LOG_VERBOSE);
     
     // enable depth->video image calibration
     kinect.setRegistration(true);
@@ -40,6 +40,7 @@ void ofApp::setup(){
     kinect.open();        // opens first available kinect
     //kinect.open(1);    // open a kinect by id, starting with 0 (sorted by serial # lexicographically))
     //kinect.open("A00362A08602047A");    // open a kinect using it's unique serial #
+    
     // print the intrinsic IR sensor values
     if(kinect.isConnected()) {
         ofLogNotice() << "sensor-emitter dist: " << kinect.getSensorEmitterDistance() << "cm";
@@ -69,8 +70,9 @@ void ofApp::setup(){
     perlinHeight = meshZ;
     mainCam.setPosition(0, 0, 80); // set initial position for oureasyCam 3D viewer
     mainCam.setOrientation(ofVec3f(0,0,0));
+    //mainCam.rotate(-20, mainCam.getUpDir());
     
-    // create the mesh
+    // create the mesh by adding vertices to it
     for (int y = 0; y < meshY; y ++){
         for (int x = 0; x < meshX; x ++){
             mainMesh.addVertex(ofPoint(x - meshX / 2, y - meshY / 2, 0));
@@ -78,13 +80,12 @@ void ofApp::setup(){
         }
     }
     
-    
+    // indices – tells the order in which to connect the vertices
     for (int x = 0; x < meshX - 1; x ++){
         for (int y = 0; y < meshY - 1; y ++){
             mainMesh.addIndex(x + y * meshX);                // 0
             mainMesh.addIndex((x + 1) + y * meshX);            // 1
             mainMesh.addIndex(x + (y + 1) * meshX);            // 10
-            
             mainMesh.addIndex((x + 1) + y * meshX);            // 1
             mainMesh.addIndex((x + 1) + (y + 1) * meshX);        // 11
             mainMesh.addIndex(x + (y + 1) * meshX);            // 10
@@ -96,7 +97,7 @@ void ofApp::setup(){
     for (int y = 0; y < meshY; y ++){
         for (int x = 0; x < meshX; x ++){
             ofVec3f newPosition = mainMesh.getVertex(i);
-            newPosition.z = ofNoise(ofMap(x, 0, meshX, 0, perlinRange),  ofMap(y, 0, meshY, 0, perlinRange) ) * perlinHeight;
+            newPosition.z = ofNoise(ofMap(x, 0, meshX, 0, perlinRange), ofMap(y, 0, meshY, 0, perlinRange) ) * perlinHeight;
             mainMesh.setVertex(i, newPosition);
             i ++;
         }
@@ -112,16 +113,10 @@ void ofApp::setup(){
     normals = new float[3 * mainMesh.getNumVertices()];
     directions = new float[3 * mainMesh.getNumVertices()];
     randOffset = new float[mainMesh.getNumVertices()];
-    //    curvatures = new float[mainMesh.getNumIndices() / 3];
-    slop = new ofVec3f[mainMesh.getNumVertices()];
-    //    windField = new ofVec3f[mainMesh.getNumVertices()];
+    curvatures = new float[mainMesh.getNumIndices() / 3];
+    slop = new ofVec3f[mainMesh.getNumVertices()]; //slop means slope
     updateMeshInfo(V, F, N, normals);
-    // store the barycenter for the drawing of the wind field
-    //    igl::barycenter(V, F, BC);
-    // construct the grad field using curvature value
-    //    constructGradField(V,F,gradU,gradV, curU, curV);
-    // construct the "wind field" with harmonic paraneterization
-    //    constructWindField(V, F, windU, windV);
+    
     for (int i = 0; i < mainMesh.getNumVertices(); i ++) {
         ofVec3f temp;
         temp.set(N.row(i)[0],N.row(i)[1],N.row(i)[2]);
@@ -144,6 +139,8 @@ void ofApp::setup(){
     for (int i = 0; i < mainMesh.getNumVertices(); i ++) {
         randOffset[i] = (int)ofRandom(8);
     }
+    
+    //---------------------------------------- gui setup -----------------------------------------
     
     gui.setup();
     gui.add(nearThreshold.setup("nearThreshold", nearThreshold_, 0, 255));
@@ -182,6 +179,8 @@ void ofApp::setup(){
     
     ofSetBackgroundColor(0, 0, 0);
     
+    //---------------------------------- fbo (frame buffer object) -----------------------------------
+    
     fbo_water.allocate(kinect.width,kinect.height);
     fbo_water.begin();
     ofClear(0,0,0,0);
@@ -219,17 +218,6 @@ void ofApp::setup(){
     rainPlane.set(DISPLAY_WIDTH,DISPLAY_HEIGHT);
     rainPlane.setPosition(DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2,0);
     rainPlane.setResolution(2,2);
-    // set up for the 3D rain particle system
-    //    world.setup();
-    //    world.setCamera(&mainCam);
-    //
-    //    bulletMesh = shared_ptr< ofxBulletTriMeshShape >( new ofxBulletTriMeshShape() );
-    //    bulletMesh->create( world.world, mainMesh, ofVec3f(0,0,0), 0.f, ofVec3f(-10000, -10000, -10000), ofVec3f(10000,10000,10000) );
-    //    bulletMesh->add();
-    //    bulletMesh->enableKinematic();
-    //    bulletMesh->setActivationState( DISABLE_DEACTIVATION );
-    
-    //    ofSetFrameRate(2);
     
     for(int i = 0; i < SIZE; i ++) {
         for(int j = 0; j < SIZE; j ++) {
@@ -240,7 +228,8 @@ void ofApp::setup(){
     cloudVideo.setLoopState(OF_LOOP_NORMAL);
 }
 
-//--------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------
+
 void ofApp::update(){
     // cout << ofGetFrameRate() << endl;
     if(kinect.isConnected()) {
@@ -282,23 +271,8 @@ void ofApp::update(){
                     double prevDepth = prevPix[index];
                     prevPix[index] = prevDepth * .9 + currentDepth * .1;
                     double  depth = prevPix[index];
-                    //                        double depth = currentDepth;
 
                     bool isInDepthBoundary = (currentDepth < nearThreshold) && (currentDepth > farThreshold);
-
-                    // set Timeout zone
-                    //                        int lowerBoundary = 210;
-                    //                        int upperBoundary = 400;
-                    //
-                    //                        bool isInActiveZone = currentDepth < upperBoundary && currentDepth > lowerBoundary;
-
-                    //                if (isInBoundary && isInActiveZone) {
-                    //                    isTimeout = false;
-                    //                    startTimeout = ofGetElapsedTimef();
-                    //                }
-                    //                if (ofGetElapsedTimef() == startTimeout + timeout) {
-                    //                    isTimeout = true;
-                    //                }
                     
                     // set pixels of colorImg based on depth ratio
                     if (isInDepthBoundary) {//} && !isTimeout) { // ***
@@ -349,18 +323,8 @@ void ofApp::update(){
                 }
             }
         }
-    } else {
-//        // distort the z value of each point in the mesh with perlinNoise
-//        int i = 0;
-//        for (int y = 0; y < meshY; y ++){
-//            for (int x = 0; x < meshX; x ++){
-//                ofVec3f newPosition = mainMesh.getVertex(i);
-//                newPosition.z = ofNoise(ofMap(x + ofGetElapsedTimef(), 0, meshX, 0, perlinRange),  ofMap(y + ofGetElapsedTimef(), 0, meshY, 0, perlinRange) ) * perlinHeight;
-//                mainMesh.setVertex(i, newPosition);
-//                i ++;
-//            }
-//        }
     }
+    
     // update the reconstructed mesh
     updateMeshInfo(V, F, N, normals);
     for (int i = 0; i < mainMesh.getNumVertices(); i ++) {
@@ -371,6 +335,7 @@ void ofApp::update(){
         directions[3 * i + 1] = slop[i].y;
         directions[3 * i + 2] = slop[i].z;
     }
+    
     // construct the gradient field for waterdrainage display
     for (int i = 0; i < gridNum; i ++) {
         for (int j = 0; j < gridNum; j ++) {
@@ -381,6 +346,7 @@ void ofApp::update(){
             else grad[i][j].set(ofNoise(10 * i),ofNoise(10 * j));
         }
     }
+    
     // close the boundary of the landscape
     for (int x = 1; x < meshX - 1; x ++) {
         int index1 = x * meshX;
@@ -419,137 +385,12 @@ void ofApp::update(){
     // move the sun in shadow shading 3D display
     sun.setPosition(50 * cos(ofGetElapsedTimef()),0,50 * sin(ofGetElapsedTimef()));
     
-    //---------------------------------- season change -----------------------------------
-    //    if (season == 0) {
-    //        if (snowHeight >= 0) {
-    //            snowHeight -= 0.006 * (snowHeight);
-    //            for(int i = 0; i < 5; i ++) {
-    //                Particle newParticle;
-    //                int rand = ofRandom(mainMesh.getNumVertices());
-    //                ofVec3f pos = mainMesh.getVertex(rand);
-    //                if (pos.z > meshZ - snowHeight + 1) {
-    //                    ofVec3f white;
-    //                    white.set(255, 255, 255);
-    //                    newParticle.setup(pos, white);
-    //                    particles.push_back(newParticle);
-    //                }
-    //            }
-    //
-    //            for (int i = 0; i < particles.size(); i ++) {
-    //                particles[i].updateDuration(0.5);
-    //                if (particles[i].isDead()) {
-    //                    particles.erase(particles.begin() + i);
-    //                }
-    //                ofVec3f moveDir;
-    //                for (int j = 0; j < mainMesh.getNumVertices(); j ++) {
-    //                    if (particles[i].pos.distance(mainMesh.getVertex(j)) < 1.2) {
-    //                        moveDir.set(slop[j]);
-    //                        break;
-    //                    }
-    //                }
-    //                particles[i].move(moveDir);
-    //            }
-    //        }
-    //
-    //        if (flowers.size() < 400) {
-    //            Particle newParticle;
-    //            int rand = ofRandom(mainMesh.getNumVertices());
-    //            ofVec3f pos = mainMesh.getVertex(rand);
-    //               if(pos.z < 7) {
-    //                   ofVec3f color;
-    //                   color.set(ofRandom(240, 255), ofRandom(150, 200),ofRandom(220, 230));
-    //                   newParticle.setup(pos + 5 * ofNoise(pos), color);
-    //                   flowers.push_back(newParticle);
-    //               }
-    //            rand = ofRandom(mainMesh.getNumVertices());
-    //            pos = mainMesh.getVertex(rand);
-    //               if(pos.z < 4) {
-    //                   ofVec3f color;
-    //                   color.set(ofRandom(240, 255), ofRandom(150, 200),ofRandom(220, 230));
-    //                   newParticle.setup(pos + 5 * ofNoise(pos), color);
-    //                   flowers.push_back(newParticle);
-    //               }
-    //         }
-    //        for( int i = 0; i < flowers.size(); i ++) {
-    //            flowers[i].updateDuration(0.5);
-    //            if(flowers[i].isDead()) {
-    //                flowers.erase(flowers.begin() + i);
-    //            }
-    //        }
-    //    } else if(season == 1) {
-    //        snowHeight = 0;
-    //        particles.clear();
-    //        fbo_water.begin();
-    //        ofClear(255,255,255, 0);
-    //        fbo_water.end();
-    //        if (flowers.size() < 600){
-    //         Particle newParticle;
-    //         int rand = ofRandom(mainMesh.getNumVertices());
-    //         ofVec3f pos = mainMesh.getVertex(rand);
-    //            while(pos.z < 7) {
-    //                rand = ofRandom(mainMesh.getNumVertices());
-    //                pos = mainMesh.getVertex(rand);
-    //            }
-    //         ofVec3f color;
-    //         color.set(ofRandom(240, 255), ofRandom(150, 200),ofRandom(220, 230));
-    //         newParticle.setup(pos, color);
-    //         flowers.push_back(newParticle);
-    //         }
-    //        for( int i = 0; i < flowers.size(); i ++) {
-    //            flowers[i].updateDuration(1);
-    //            if(flowers[i].isDead()) {
-    //                flowers.erase(flowers.begin() + i);
-    //            }
-    //            ofVec3f moveDir;
-    //            for( int j = 0; j < mainMesh.getNumVertices(); j ++) {
-    //                if(flowers[i].pos.distance(mainMesh.getVertex(j)) < 1.2) {
-    //                    moveDir.set(slop[j]);
-    //                    break;
-    //                }
-    //            }
-    //            ofVec3f w;
-    //            w.set(1. + ofNoise(flowers[i].pos.x,flowers[i].pos.y,ofGetElapsedTimef()),1.+ ofNoise(flowers[i].pos.x,flowers[i].pos.y,ofGetElapsedTimef()),0.);
-    //            flowers[i].move((moveDir + 0.1 * w));
-    //        }
-    //    } else {
-    //        if(snowHeight < 7) snowHeight += 0.002*(7 - snowHeight);
-    //        flowers.clear();
-    //    }
-    //---------------------------------- draw water drainage vectors based on 8 classification -----------------------------------
-    
+    //------------------- draw water drainage vectors based on 8 classification -------------------
     fbo_grad.begin();
     ofPushStyle();
     ofSetColor(0, 0, 0);
     ofDrawRectangle(0, 0, meshX * 10, meshY * 10);
-    // don't find path, just draw the vectors
-    //        int time = (int)(ofGetFrameNum()/20);
-    //        for (int i = 0; i < gridNum; i ++) {
-    //            for (int j = 0; j < gridNum; j ++) {
-    //                ofVec2f gradient = grad[i][j];
-    //                int ind = i * gridSize * meshX + j * gridSize;
-    //                float x = 250 + mainMesh.getVertex(ind).x * 10;
-    //                float y = 250 + mainMesh.getVertex(ind).y * 10;
-    //                float z = meshZ - mainMesh.getVertex(ind).z;
-    //                int xx = 0;
-    //                int yy = 0;
-    //                if (gradient.dot(up) >  water || gradient.dot(down) > water) {
-    //                    yy = 1;
-    //                }
-    //                if (gradient.dot(right) >  water || gradient.dot(left) > water) {
-    //                    xx = 1;
-    //                }
-    //                ofPushStyle();
-    //                ofSetColor(0,0,200);
-    //                float temp = time - 10 * (int)(time/10);
-    //                if( temp > z - .5 && temp < z + .5) ofSetColor(100,0,0);
-    //                if(z > 7) ofSetColor(100,0,0);
-    //                ofSetLineWidth(6);
-    //                ofDrawLine(x, y, x + xx * 5, y + yy * 5);
-    //                ofPopStyle();
-    //            }
-    //        }
-    // find path based on the vectors
-    //    if(ofGetFrameNum() % 180 == 0) {
+
     int temp = waterVectorDis;
     if(ofGetFrameNum() % 70 == 0) {
         for (int i = 0; i < gridNum; i += temp) {
@@ -563,7 +404,8 @@ void ofApp::update(){
             }
         }
     }
-    //    }
+    
+    // creates the waterdrainage display animation
     for (int i = 0; i < gridNum; i +=temp) {
         for (int j = 0; j < gridNum; j +=temp) {
             int indOff = i * meshX * gridSize + j * gridSize;
@@ -622,48 +464,9 @@ void ofApp::update(){
     }
     ofPopStyle();
     fbo_grad.end();
-    //---------------------------------- draw water drainage vectors based on 8n classification -----------------------------------
-    //    if(ofGetFrameNum() % 180 == 0) {
-    //    fbo_grad.begin();
-    //    ofPushStyle();
-    //    ofSetColor(0, 0, 0);
-    //    ofDrawRectangle(0, 0, meshX * 10, meshY * 10);
-    //    int temp = waterVectorDis;
-    //    for (int i = 0; i < gridNum; i ++) {
-    //        for (int j = 0; j < gridNum; j ++) {
-    //            vectorList[i][j]->init();
-    //        }
-    //    }
-    //
-    //    for (int i = 0; i < gridNum; i ++) {
-    //        for (int j = 0; j < gridNum; j ++) {
-    //            vectorList[i][j]->findPath(i, j, mainMesh, vectorList, grad);
-    //        }
-    //    }
-    //
-    //    for (int i = 0; i < gridNum; i ++) {
-    //        for (int j = 0; j < gridNum; j ++) {
-    //            WaterDrainage* vec = vectorList[i][j];
-    //            if(vec->parent == nullptr) { // is a root
-    //                while(vec->child != nullptr && vec->visited) { // has not been visited and has child
-    //                    vec->visited = false; // flip its visited bit
-    //                    ofPushStyle();
-    //                    ofSetColor(200,200,200);
-    //                    ofSetLineWidth(6);
-    //                    float offSet = meshX * 5;
-    //                    ofDrawLine(offSet + vec->startPos.x * 10, offSet + vec->startPos.y * 10, offSet + vec->child->startPos.x * 10, offSet + vec->child->startPos.y * 10);
-    //                    ofPopStyle();
-    //                    vec = vec->child;
-    //                }
-    //            }
-    //        }
-    //    }
-    //
-    //        ofPopStyle();
-    //        fbo_grad.end();
-    //    }
     
-    //---------------------------------------------------------- rain ----------------------------------------------------------
+    //------------------------------- rain for waterdrainage mode ---------------------------------
+    
     float rainAmount = ofClamp(2.5 + 7 * sin(cloud * ofGetElapsedTimef()),0,5);
     if(rainAmount < 3) {
         for(int i = 0; i < ofRandom((5 - rainAmount) * 8); i ++) {
@@ -692,18 +495,9 @@ void ofApp::update(){
     if(cloudAmount != 5) resetVideo = false;
 }
 
-//--------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------
+
 void ofApp::draw(){
-    // water flow
-    //    fbo_water.begin();
-    //    ofPushStyle();
-    //    for( int i = 0; i < particles.size(); i ++){
-    //        particles[i].draw(4);
-    //    }
-    //    ofPopStyle();
-    //    ofPushStyle();
-    //    ofPopStyle();
-    //    fbo_water.end();
     
     // flowers
     fbo_particle.begin();
@@ -752,26 +546,22 @@ void ofApp::draw(){
     mainMesh.drawFaces();
     shader.end();
     //    renderVectorField(V, F, gradV, curV, windU, slop, 0); // for debugging the slop vector field
+    
+    // animates the sun in the sun shader mode
     if(u_mode == 3){
         sunShader.begin();
         sun.draw();
         sunShader.end();
     }
     ofDisableDepthTest();
-//    if(u_mode == 1) {
-//        cloudShader.begin();
-//        ofDrawRectangle(-30, -30, 40, 60, 60);
-//        cloudShader.end();
-//    }
+
     mainCam.end();
     ofPopStyle();
     fbo_sideView.end();
-//    fbo_sideView.getTexture(0).draw(0, 100, 1680, 1300);
     
     fbo_rainBack.begin();
     for(int j = 0; j < 5; j ++) {
         for(int i = 0; i < floor(rain.size()/3); i ++) {
-//            rain[i].updateDuration(1);
             if(rain[i].pos.y < DISPLAY_HEIGHT/2 ) {
                 rain.erase(rain.begin() + i);
             }
@@ -862,10 +652,6 @@ void ofApp::draw(){
     if(!bHide){
         gui.draw();
     }
-    
-//    if(u_mode == 1) {
-//        cloudVideo.draw(400, 50, 1000, 300);
-//    }
     
 }
 
@@ -980,22 +766,12 @@ void ofApp::constructWindField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::Ma
 void ofApp::renderVectorField(Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXd &grad, Eigen::VectorXd &cur, Eigen::MatrixXd &wind, ofVec3f* slop, float vectorFieldMode) {
     if(vectorFieldMode == 0) { // draw slop field
         for (int i = 0; i < mainMesh.getNumVertices(); i ++) {
-            //            ofDrawLine(V.row(i)[0], V.row(i)[1], V.row(i)[2],V.row(i)[0] + slop[i].x,V.row(i)[1] + slop[i].y,V.row(i)[2] + slop[i].z);
             ofVec3f arrowTailPoint(V.row(i)[0], V.row(i)[1], V.row(i)[2]);
             ofVec3f arrowHeadPoint(V.row(i)[0] + slop[i].x,V.row(i)[1] + slop[i].y,V.row(i)[2] + slop[i].z);
             ofDrawArrow(arrowTailPoint, arrowHeadPoint, 0.1);
             ofSetColor(255,0,0);
-            // draw normal field
-            //            ofDrawLine(V.row(i)[0], V.row(i)[1], V.row(i)[2],V.row(i)[0] + N.row(i)[0],V.row(i)[1] + N.row(i)[1],V.row(i)[2] + N.row(i)[2]);
-            //            ofSetColor(0,0,255);
-            // draw gravity field
-            //            ofDrawLine(V.row(i)[0], V.row(i)[1], V.row(i)[2],V.row(i)[0] + gravity.x,V.row(i)[1] + gravity.y,V.row(i)[2] + gravity.z);
         }
-        //        int scale = 3;
-        //        for (int i = 0; i < grad.rows(); i ++) {
-        // draw gradiant field
-        //            ofDrawLine(V.row(i)[0], V.row(i)[1], V.row(i)[2], V.row(i)[0] + scale * cur[i] * grad.row(i)[0], V.row(i)[1] + scale * cur[i] * grad.row(i)[1], V.row(i)[2] + scale * cur[i] * grad.row(i)[2]);
-        //        }
+        
     } else { // draw wind field created using harmonic weight
         double avg = 10 * igl::avg_edge_length(V, F);
         for (int i = 0; i < wind.rows(); i ++) {
