@@ -2,13 +2,13 @@
 #define DISPLAY_WIDTH 1680
 #define DISPLAY_HEIGHT 1050
 
-float u_mode = 0;
+float u_mode = 1;
 int season = 0;
 int waterMode = 0;
 float snowHeight = 0;
 float meshX = SIZE;
 float meshY = SIZE;
-float meshZ = SIZE/5;
+float meshZ = SIZE/2.2;
 float cloudAmount = 5;
 float specular = 1.;
 float shadowRate = 1.;
@@ -68,7 +68,7 @@ void ofApp::setup(){
     // set the initial values to use for our perlinNoise
     perlinRange = 2;
     perlinHeight = meshZ;
-    mainCam.setPosition(0, 0, 80); // set initial position for oureasyCam 3D viewer
+    mainCam.setPosition(0, 0, 160); // set initial position for oureasyCam 3D viewer
     mainCam.setOrientation(ofVec3f(0,0,0));
     //mainCam.rotate(-20, mainCam.getUpDir());
     
@@ -102,7 +102,7 @@ void ofApp::setup(){
             i ++;
         }
     }
-    
+
     gravity.set(0.,0.,-1.);
     wind.set(1.,1.,0.);
     
@@ -157,8 +157,8 @@ void ofApp::setup(){
     gui.add(topViewX.setup("topViewX", topViewX_, 0, 5000));
     gui.add(topViewY.setup("topViewY", topViewY_, 0, 1000));
     
-    gui.add(smoothRound.setup("smoothRound", smoothRound_, 0, 25));
-    gui.add(smoothWeight.setup("smoothWeight", smoothWeight_, 0, 10));
+    gui.add(smoothRound.setup("smoothRound", smoothRound_, -5, 25));
+    gui.add(smoothWeight.setup("smoothWeight", smoothWeight_, 0, 150));
     gui.add(cloud.setup("cloud", cloud_, 0., 5));
     gui.add(water.setup("water", water_, 0, 1));
     gui.add(contourLineDarkness.setup("contourLineDarkness", contourLineDarkness_, 0, 1));
@@ -176,6 +176,7 @@ void ofApp::setup(){
     gui.add(posY.setup("posY", posY_, -30, 30));
     gui.add(posZ.setup("posZ", posZ_, -30, 30));
 
+    gui.loadFromFile("settings.xml");
     
     ofSetBackgroundColor(0, 0, 0);
     
@@ -255,8 +256,7 @@ void ofApp::update(){
             croppedImg.setFromPixels(cropped,cropped_w, cropped_h);
             grayImageSmall.scaleIntoMe(croppedImg);
             free(cropped);
-            // add effects to smooth signal and reduce noise
-            grayImageSmall.blur(3);
+
             pix = grayImageSmall.getPixels().getData();
 
             // draw image
@@ -290,7 +290,7 @@ void ofApp::update(){
                     } else {
                         
                         ofVec3f tmpVec = mainMesh.getVertex(h * grayImageSmall.width + (grayImageSmall.getWidth() - w));
-                        if(currentDepth < nearThreshold) tmpVec.z = 0;
+                        if(currentDepth < nearThreshold) tmpVec.z = 9;
                         else if(currentDepth > farThreshold) tmpVec.z = meshZ;
                         
                         mainMesh.setVertex( h * grayImageSmall.width + grayImageSmall.getWidth() - w , tmpVec);
